@@ -15,4 +15,4 @@ WEIGHT_DECAY = 1e-4
 IMG_SIZE = 224
 
 PRETRAINED = False
-DATASET_PATH = "datasets/val"
+DATASET_PATH = "datasets/ILSVRC"
