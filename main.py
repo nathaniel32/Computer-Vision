@@ -20,16 +20,16 @@ class DatasetManager():
         return len(self.x_data)
     
     def __getitem__(self, idx):
-        #ram friendly
-        img_path = self.x_data[idx]
-        image = Image.open(img_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
-        image_array = np.array(image) / 255.0
-        image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+        if config.LOAD_IMG_IN_BATCH:
+            #ram friendly
+            img_path = self.x_data[idx]
+            image = Image.open(img_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
+            image_array = np.array(image) / 255.0
+            image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+        else:
+            image_array = self.x_data[idx]
 
         return {
-            #ram unfriendly
-            #'image': torch.tensor(self.x_data[idx], dtype=torch.float32)
-            #ram friendly
             'image': torch.tensor(image_array, dtype=torch.float32),
             'label': torch.tensor(self.y_label[idx], dtype=torch.int64)
         }
@@ -48,15 +48,15 @@ class Trainer:
             for file_name in os.listdir(label_path):
                 file_path = os.path.join(label_path, file_name)
                 if os.path.isfile(file_path):
-                    
-                    #ram unfriendly
-                    #image = Image.open(file_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
-                    #image_array = np.array(image) / 255.0
-                    #image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
-                    #data_x.append(image_array)
-
-                    #ram friendly
-                    data_x.append(file_path)
+                    if config.LOAD_IMG_IN_BATCH:
+                        #ram friendly
+                        data_x.append(file_path)
+                    else:
+                        #ram unfriendly
+                        image = Image.open(file_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
+                        image_array = np.array(image) / 255.0
+                        image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+                        data_x.append(image_array)
                     data_y.append(label_name)
 
         # encode
@@ -175,7 +175,14 @@ class Trainer:
                 torch.save(model.state_dict(), config.TRAINED_PATH)
                 logger('new Model')
 
-                show_conf_matrix(preds_array=preds_array, solution_array=solution_array, label=labels_encoder.classes_, title=f"{epoch + 1} Epochs | Total: {len(preds_array)}", plot=True, verbose=True)
+                show_conf_matrix(
+                    preds_array=preds_array,
+                    solution_array=solution_array,
+                    label=labels_encoder.classes_,
+                    title=f"{epoch + 1} Epochs | Total: {len(preds_array)}",
+                    plot=len(labels_encoder.classes_) < 30,
+                    verbose=True
+                )
 
 if __name__ == '__main__':
     t = Trainer().main()

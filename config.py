@@ -14,5 +14,7 @@ WEIGHT_DECAY = 1e-4
 
 IMG_SIZE = 224
 
-PRETRAINED = False
-DATASET_PATH = "datasets/ILSVRC"
+PRETRAINED = True
+DATASET_PATH = "datasets/pretrain_fruits_animals"
+
+LOAD_IMG_IN_BATCH = False
