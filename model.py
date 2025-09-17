@@ -57,9 +57,9 @@ def get_model(num_classes, pretrained=False, freeze_backbone=False):
     if pretrained:
         logger("Pretrained!")
         meta_data = joblib.load(config.META_PATH)
-        encoder_labels = meta_data['encoder_labels']
+        labels_encoder = meta_data['labels_encoder']
 
-        model = Natnet(3, 32, len(encoder_labels.classes_), size=config.IMG_SIZE)
+        model = Natnet(3, 32, len(labels_encoder.classes_), size=config.IMG_SIZE)
 
         # load weight
         state_dict = torch.load(config.TRAINED_PATH, map_location=torch.device(config.DEVICE))

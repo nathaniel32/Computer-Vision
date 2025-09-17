@@ -10,66 +10,46 @@ from utils import logger, to_yhat, show_conf_matrix
 from model import get_model
 import joblib
 import torch.nn as nn
-from torchvision import transforms
-
-""" 
+ 
 class DatasetManager():
-    def __init__(self, x_data_path, y_label, size):
-        self.x_data_path = x_data_path
+    def __init__(self, x_data, y_label):
+        self.x_data = x_data
         self.y_label = y_label
-        self.size = size
 
     def __len__(self):
-        return len(self.x_data_path)
+        return len(self.x_data)
     
     def __getitem__(self, idx):
-        img_path = self.x_data_path[idx]
-        image = Image.open(img_path).resize((self.size, self.size)).convert('RGB')
-        image_array = np.array(image) / 255.0
-        image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+        #ram friendly
+        #img_path = self.x_data[idx]
+        #image = Image.open(img_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
+        #image_array = np.array(image) / 255.0
+        #image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
 
         return {
-            'image': torch.tensor(image_array, dtype=torch.float32),
-            'label': torch.tensor(self.y_label[idx], dtype=torch.int64)
-        }
-"""
-
-class DatasetManager():
-    def __init__(self, x_data_path, y_label, size):
-        self.x_data_path = x_data_path
-        self.y_label = y_label
-        self.size = size
-        self.transform = transforms.Compose([
-            transforms.Resize((self.size, self.size)),
-            transforms.ToTensor(),  # scale [0,1], (H,W,C) -> (C,H,W)
-        ])
-
-    def __len__(self):
-        return len(self.x_data_path)
-    
-    def __getitem__(self, idx):
-        img_path = self.x_data_path[idx]
-        image = Image.open(img_path).convert('RGB')
-        image = self.transform(image)
-
-        return {
-            'image': image,
+            'image': torch.tensor(self.x_data[idx], dtype=torch.float32),
             'label': torch.tensor(self.y_label[idx], dtype=torch.int64)
         }
 
 class Trainer:
     def _get_datasets(self):
-        DATASET_PATH = "dataset"
+        
         data_x = []
         data_y = []
         
         # read
-        for label_name in os.listdir(DATASET_PATH): # baca dir
-            label_path = os.path.join(DATASET_PATH, label_name)
+        logger("preparing data")
+        for label_name in os.listdir(config.DATASET_PATH): # baca dir
+            label_path = os.path.join(config.DATASET_PATH, label_name)
             for file_name in os.listdir(label_path):
                 file_path = os.path.join(label_path, file_name)
                 if os.path.isfile(file_path):
-                    data_x.append(file_path)
+                    
+                    image = Image.open(file_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
+                    image_array = np.array(image) / 255.0
+                    image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+                    
+                    data_x.append(image_array) # file_path
                     data_y.append(label_name)
 
         # encode
@@ -79,8 +59,8 @@ class Trainer:
         # split
         train_data, val_data, train_labels, val_labels = train_test_split(data_x, data_y_encoded, test_size=0.2, random_state=42, stratify=data_y_encoded)
 
-        train_dataset = DatasetManager(x_data_path=train_data, y_label=train_labels, size=config.IMG_SIZE)
-        val_dataset = DatasetManager(x_data_path=val_data, y_label=val_labels, size=config.IMG_SIZE)
+        train_dataset = DatasetManager(x_data=train_data, y_label=train_labels)
+        val_dataset = DatasetManager(x_data=val_data, y_label=val_labels)
 
         train_data_loader = DataLoader( dataset=train_dataset,
                                         batch_size=config.TRAIN_BATCH_SIZE,
@@ -98,13 +78,7 @@ class Trainer:
         logger("Val data:", len(val_data))
         logger("Train labels:", len(train_labels))
         logger("Val labels:", len(val_labels))
-
-        # save conf
-        meta_data = {
-            'encoder_labels': labels_encoder
-        }
-        os.makedirs(os.path.dirname(config.META_PATH), exist_ok=True)
-        joblib.dump(meta_data, config.META_PATH)
+        logger("Classes", labels_encoder.classes_)
 
         return train_data_loader, val_data_loader, labels_encoder
 
@@ -161,9 +135,16 @@ class Trainer:
 
         train_data_loader, val_data_loader, labels_encoder = self._get_datasets()
 
-        model = get_model(num_classes=len(labels_encoder.classes_), pretrained=True)
+        model = get_model(num_classes=len(labels_encoder.classes_), pretrained=config.PRETRAINED)
         model.to(config.DEVICE)
         model.info()
+
+        # save conf
+        meta_data = {
+            'labels_encoder': labels_encoder
+        }
+        os.makedirs(os.path.dirname(config.META_PATH), exist_ok=True)
+        joblib.dump(meta_data, config.META_PATH)
 
         criterion = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.AdamW(model.parameters(), lr=config.LEARNING_RATE, weight_decay=config.WEIGHT_DECAY)
