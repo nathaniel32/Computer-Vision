@@ -72,7 +72,7 @@ def get_model(num_classes, pretrained=False, freeze_backbone=False):
             for param in model.conv_block_2.parameters():
                 param.requires_grad = False
 
-        # ganti classifier sesuai dataset baru
+        # change classifier
         with torch.no_grad():
             dummy = torch.zeros(1, 3, config.IMG_SIZE, config.IMG_SIZE)
             out = model.conv_block_1(dummy)

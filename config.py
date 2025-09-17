@@ -15,4 +15,4 @@ WEIGHT_DECAY = 1e-4
 IMG_SIZE = 224
 
 PRETRAINED = False
-DATASET_PATH = "datasets/pretrain"
+DATASET_PATH = "datasets/val"

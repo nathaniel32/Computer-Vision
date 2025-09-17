@@ -21,13 +21,16 @@ class DatasetManager():
     
     def __getitem__(self, idx):
         #ram friendly
-        #img_path = self.x_data[idx]
-        #image = Image.open(img_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
-        #image_array = np.array(image) / 255.0
-        #image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+        img_path = self.x_data[idx]
+        image = Image.open(img_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
+        image_array = np.array(image) / 255.0
+        image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
 
         return {
-            'image': torch.tensor(self.x_data[idx], dtype=torch.float32),
+            #ram unfriendly
+            #'image': torch.tensor(self.x_data[idx], dtype=torch.float32)
+            #ram friendly
+            'image': torch.tensor(image_array, dtype=torch.float32),
             'label': torch.tensor(self.y_label[idx], dtype=torch.int64)
         }
 
@@ -41,15 +44,19 @@ class Trainer:
         logger("preparing data")
         for label_name in os.listdir(config.DATASET_PATH): # baca dir
             label_path = os.path.join(config.DATASET_PATH, label_name)
+            logger("-", label_name)
             for file_name in os.listdir(label_path):
                 file_path = os.path.join(label_path, file_name)
                 if os.path.isfile(file_path):
                     
-                    image = Image.open(file_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
-                    image_array = np.array(image) / 255.0
-                    image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
-                    
-                    data_x.append(image_array) # file_path
+                    #ram unfriendly
+                    #image = Image.open(file_path).resize((config.IMG_SIZE, config.IMG_SIZE)).convert('RGB')
+                    #image_array = np.array(image) / 255.0
+                    #image_array = np.moveaxis(image_array, -1, 0) # (H, W, C) -> (C, H, W)
+                    #data_x.append(image_array)
+
+                    #ram friendly
+                    data_x.append(file_path)
                     data_y.append(label_name)
 
         # encode
