@@ -15,7 +15,7 @@ def to_yhat(logits):
     y_hat = torch.argmax(probs, dim=1)
     return probs.numpy(), y_hat.numpy()
 
-def show_conf_matrix(preds_array, solution_array, label, title, binary=False, plot=False, filename="data/cmatrix.png"):
+def show_conf_matrix(preds_array, solution_array, label, title, binary=False, plot=False, verbose=False, filename="data/cmatrix.png"):
     def calculate_accuracy(preds_array, solution_array):
         preds_tensor = torch.tensor(preds_array)
         solution_tensor = torch.tensor(solution_array)
@@ -32,7 +32,9 @@ def show_conf_matrix(preds_array, solution_array, label, title, binary=False, pl
             confmat_metric = ConfusionMatrix(task='multiclass', num_classes=len(label))
             
         conf_matrix = confmat_metric(torch.tensor(preds_array), torch.tensor(solution_array))
-        print(conf_matrix)
+        
+        if verbose:
+            print(conf_matrix)
 
         if plot:
             os.makedirs(os.path.dirname(filename), exist_ok=True)

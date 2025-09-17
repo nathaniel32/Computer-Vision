@@ -150,6 +150,7 @@ class Trainer:
         optimizer = torch.optim.AdamW(model.parameters(), lr=config.LEARNING_RATE, weight_decay=config.WEIGHT_DECAY)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=7, factor=0.5, mode="min")
 
+        best_loss = float('inf')
         for epoch in range(config.EPOCHS):
             train_loss = self._train(train_data_loader, model, optimizer, criterion)
             val_loss, preds_array, solution_array = self._val(val_data_loader, model, criterion)
@@ -160,17 +161,14 @@ class Trainer:
             logger(f'Train Loss: {train_loss}')
             logger(f'Validation Loss: {val_loss}')
 
-            best_loss = float('inf')
             if val_loss < best_loss and config.SAVE_MODEL:
-                best_preds_array = preds_array
-                best_solution_array = solution_array
                 best_loss = val_loss
 
                 os.makedirs(os.path.dirname(config.TRAINED_PATH), exist_ok=True)
                 torch.save(model.state_dict(), config.TRAINED_PATH)
                 logger('new Model')
 
-            show_conf_matrix(preds_array=preds_array, solution_array=solution_array, label=labels_encoder.classes_, title=f"{epoch + 1} Epochs | Total: {len(preds_array)}", plot=best_loss==val_loss)
+                show_conf_matrix(preds_array=preds_array, solution_array=solution_array, label=labels_encoder.classes_, title=f"{epoch + 1} Epochs | Total: {len(preds_array)}", plot=True, verbose=True)
 
 if __name__ == '__main__':
     t = Trainer().main()
