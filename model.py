@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from torchinfo import summary
+import config
+import joblib
+from utils import logger
 
 class Natnet(nn.Module):
     def __init__(self, input_shape, hidden_units, output_shape, size):
@@ -49,3 +52,39 @@ class Natnet(nn.Module):
         x = self.conv_block_2(x)
         x = self.classifier(x)
         return x
+    
+def get_model(num_classes, pretrained=False, freeze_backbone=False):
+    if pretrained:
+        logger("Pretrained!")
+        meta_data = joblib.load(config.META_PATH)
+        encoder_labels = meta_data['encoder_labels']
+
+        model = Natnet(3, 32, len(encoder_labels.classes_), size=config.IMG_SIZE)
+
+        # load weight
+        state_dict = torch.load(config.TRAINED_PATH, map_location=torch.device(config.DEVICE))
+        model.load_state_dict(state_dict, strict=False)
+
+        # freeze backbone (conv_block_1 dan conv_block_2)
+        if freeze_backbone:
+            for param in model.conv_block_1.parameters():
+                param.requires_grad = False
+            for param in model.conv_block_2.parameters():
+                param.requires_grad = False
+
+        # ganti classifier sesuai dataset baru
+        with torch.no_grad():
+            dummy = torch.zeros(1, 3, config.IMG_SIZE, config.IMG_SIZE)
+            out = model.conv_block_1(dummy)
+            out = model.conv_block_2(out)
+            n_features = out.numel()
+
+        model.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(n_features, num_classes),
+            nn.Dropout(0.2)
+        )
+        return model
+    else:
+        return Natnet(3, 32, num_classes, size=config.IMG_SIZE)
+    

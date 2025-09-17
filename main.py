@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from utils import logger, to_yhat, show_conf_matrix
-from model import Natnet
+from model import get_model
 import joblib
 import torch.nn as nn
 from torchvision import transforms
@@ -161,7 +161,7 @@ class Trainer:
 
         train_data_loader, val_data_loader, labels_encoder = self._get_datasets()
 
-        model = Natnet(3, 32, len(labels_encoder.classes_), size=config.IMG_SIZE)
+        model = get_model(num_classes=len(labels_encoder.classes_), pretrained=True)
         model.to(config.DEVICE)
         model.info()
 
@@ -175,9 +175,9 @@ class Trainer:
             
             scheduler.step(val_loss)
 
-            print(f'\n== Epoch {epoch + 1}/{config.EPOCHS}')
-            print(f'Train Loss: {train_loss}')
-            print(f'Validation Loss: {val_loss}')
+            logger(f'\n== Epoch {epoch + 1}/{config.EPOCHS}')
+            logger(f'Train Loss: {train_loss}')
+            logger(f'Validation Loss: {val_loss}')
 
             best_loss = float('inf')
             if val_loss < best_loss and config.SAVE_MODEL:
@@ -187,7 +187,7 @@ class Trainer:
 
                 os.makedirs(os.path.dirname(config.TRAINED_PATH), exist_ok=True)
                 torch.save(model.state_dict(), config.TRAINED_PATH)
-                print('new Model')
+                logger('new Model')
 
             show_conf_matrix(preds_array=preds_array, solution_array=solution_array, label=labels_encoder.classes_, title=f"{epoch + 1} Epochs | Total: {len(preds_array)}", plot=best_loss==val_loss)
 
