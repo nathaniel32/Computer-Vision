@@ -109,44 +109,49 @@ class Main:
                 img_path = input("Img Path: ").strip('"').strip()
                 if not img_path:
                     break
-                
-                print("\nID\tCategory")
-                for key, value in categories_classes.items():
-                    print(f"{key}\t {value}")
 
-                cat_id = int(input("\nCategory ID: "))
-                cat_index = category_encoder[cat_id]
+                while True:
+                    print("\nID\tCategory")
+                    for key, value in categories_classes.items():
+                        print(f"{key}\t {value}")
 
-                print("Category Index:", category_decoder[cat_index])
+                    cat_id = input("\nCategory ID: ")
+                    if not cat_id:
+                        break
+                    
+                    cat_id = int(cat_id)
+                    cat_index = category_encoder[cat_id]
 
-                # load gambar asli
-                image_orig = Image.open(img_path).convert('RGB')
-                orig_size = image_orig.size  # (width, height)
+                    print("Category Index:", category_decoder[cat_index])
 
-                # resize untuk model
-                image_pil = image_orig.resize(self.image_size)
+                    # load gambar asli
+                    image_orig = Image.open(img_path).convert('RGB')
+                    orig_size = image_orig.size  # (width, height)
 
-                # prepare data
-                empty_mask = np.zeros(self.image_size)
-                dataset = utils.DatasetManager([image_pil], [empty_mask], [cat_index])
-                image_tensor, _, category_tensor = dataset[0]
-                image_tensor = image_tensor.unsqueeze(0).to(self.device)
-                category_tensor = category_tensor.unsqueeze(0).to(self.device)
+                    # resize untuk model
+                    image_pil = image_orig.resize(self.image_size)
 
-                # prediksi
-                outputs = model(image_tensor, category_tensor)
-                mask_pred = outputs.squeeze().cpu().numpy()
+                    # prepare data
+                    empty_mask = np.zeros(self.image_size)
+                    dataset = utils.DatasetManager([image_pil], [empty_mask], [cat_index])
+                    image_tensor, _, category_tensor = dataset[0]
+                    image_tensor = image_tensor.unsqueeze(0).to(self.device)
+                    category_tensor = category_tensor.unsqueeze(0).to(self.device)
 
-                # resize mask ke ukuran asli
-                mask_resized = cv2.resize(mask_pred, orig_size)
+                    # prediksi
+                    outputs = model(image_tensor, category_tensor)
+                    mask_pred = outputs.squeeze().cpu().numpy()
 
-                # plot
-                plt.figure(figsize=(8,8))
-                plt.imshow(image_orig)
-                plt.imshow(mask_resized, cmap='jet', alpha=0.5)
-                plt.title(categories_classes.get(category_decoder[category_tensor.item()]), fontsize=10)
-                plt.axis('off')
-                plt.show()
+                    # resize mask ke ukuran asli
+                    mask_resized = cv2.resize(mask_pred, orig_size)
+
+                    # plot
+                    plt.figure(figsize=(8,8))
+                    plt.imshow(image_orig)
+                    plt.imshow(mask_resized, cmap='jet', alpha=0.5)
+                    plt.title(categories_classes.get(category_decoder[category_tensor.item()]), fontsize=10)
+                    plt.axis('off')
+                    plt.show()
 
     def train(self, n_epochs=100, patience=15, val_interval=1):
         train_loader, val_loader, test_loader, categories_classes, category_decoder = self._prepare_datasets()
