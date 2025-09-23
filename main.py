@@ -111,16 +111,17 @@ class Main:
         return train_loader, val_loader, test_loader, categories_classes, category_decoder
     
     def predict(self):
-        n_classes = 2
-        model = ConditionalSegmentationModel(n_class=n_classes).to(self.device)
-        logger.info("Loading best model for evaluation...")
-        checkpoint = torch.load(self.save_model_path)
-        model.load_state_dict(checkpoint['model_state_dict'])
-
         meta_data = joblib.load(self.save_meta_path)
         categories_classes = meta_data["categories_classes"]
         category_encoder = meta_data["category_encoder"]
         category_decoder = meta_data["category_decoder"]
+        
+        n_classes = len(category_decoder) # categories_classes tidak akurat
+        print("Num Classes:", n_classes)
+        model = ConditionalSegmentationModel(n_classes=n_classes).to(self.device)
+        logger.info("Loading best model for evaluation...")
+        checkpoint = torch.load(self.save_model_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
 
         with torch.no_grad():
             while True:
@@ -171,8 +172,8 @@ class Main:
         
         logger.info(f"Using device: {self.device}")
 
-        n_classes = len(set(categories_classes))
-        model = ConditionalSegmentationModel(n_class=n_classes).to(self.device)
+        n_classes = len(category_decoder)
+        model = ConditionalSegmentationModel(n_classes=n_classes).to(self.device)
 
         # Optimizer with gradient clipping
         optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)

@@ -4,14 +4,14 @@ from torchvision.models import vgg16
 import torch.nn.functional as F
 
 class ConditionalFCN(nn.Module):
-    def __init__(self, n_class, emb_dim=128, dropout_rate=0.1):
+    def __init__(self, n_classes, emb_dim=128, dropout_rate=0.1):
         super().__init__()
-        self.n_class = n_class
+        self.n_classes = n_classes
         self.emb_dim = emb_dim
         
         # Enhanced class embedding with dropout
         self.class_embedding = nn.Sequential(
-            nn.Embedding(n_class, emb_dim),
+            nn.Embedding(n_classes, emb_dim),
             nn.Dropout(dropout_rate),
             nn.LayerNorm(emb_dim)
         )
@@ -132,14 +132,14 @@ class ConditionalFCN(nn.Module):
 ########################################
 
 class ConditionalUNet(nn.Module):
-    def __init__(self, n_class, input_channels=3, emb_dim=128, dropout_rate=0.1):
+    def __init__(self, n_classes, input_channels=3, emb_dim=128, dropout_rate=0.1):
         super().__init__()
-        self.n_class = n_class
+        self.n_classes = n_classes
         self.emb_dim = emb_dim
         
         # Enhanced class embedding
         self.class_embedding = nn.Sequential(
-            nn.Embedding(n_class, emb_dim),
+            nn.Embedding(n_classes, emb_dim),
             nn.Dropout(dropout_rate),
             nn.LayerNorm(emb_dim)
         )
@@ -310,14 +310,14 @@ class AttentionGate(nn.Module):
         return x * psi
 
 class AttentionUNet(nn.Module):
-    def __init__(self, n_class, input_channels=3, emb_dim=128, dropout_rate=0.1):
+    def __init__(self, n_classes, input_channels=3, emb_dim=128, dropout_rate=0.1):
         super().__init__()
-        self.n_class = n_class
+        self.n_classes = n_classes
         self.emb_dim = emb_dim
         
         # Class embedding
         self.class_embedding = nn.Sequential(
-            nn.Embedding(n_class, emb_dim),
+            nn.Embedding(n_classes, emb_dim),
             nn.Dropout(dropout_rate),
             nn.LayerNorm(emb_dim)
         )
@@ -441,13 +441,13 @@ if __name__ == "__main__":
     device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     # FCN
-    model_fcn = ConditionalFCN(n_class=10).to(device)
+    model_fcn = ConditionalFCN(n_classes=10).to(device)
 
     # Standard U-Net
-    model_unet = ConditionalUNet(n_class=10).to(device)
+    model_unet = ConditionalUNet(n_classes=10).to(device)
     
     # Attention U-Net
-    model_att_unet = AttentionUNet(n_class=10).to(device)
+    model_att_unet = AttentionUNet(n_classes=10).to(device)
     
     # Test forward pass
     x = torch.randn(2, 3, 224, 224).to(device)
