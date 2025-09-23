@@ -24,24 +24,6 @@ class Main:
         self.save_model_path = os.path.join(self.res_dir, "best_model.pth")
         self.save_meta_path = os.path.join(self.res_dir, "meta.bin")
         self.image_size=(224, 224)
-
-    def _combined_loss(self, pred, target, alpha=0.25, gamma=2.0, dice_weight=0.5):
-        """Combined loss with BCE, Focal, and Dice components"""
-        # BCE Loss
-        bce_loss = nn.functional.binary_cross_entropy(pred, target, reduction='mean')
-        
-        # Focal Loss
-        pt = torch.exp(-bce_loss)
-        focal_loss = alpha * (1-pt)**gamma * bce_loss
-        
-        # Dice Loss
-        smooth = 1e-6
-        pred_flat = pred.view(-1)
-        target_flat = target.view(-1)
-        intersection = (pred_flat * target_flat).sum()
-        dice_loss = 1 - (2*intersection + smooth) / (pred_flat.sum() + target_flat.sum() + smooth)
-        
-        return bce_loss + focal_loss + dice_weight * dice_loss
     
     def _prepare_datasets(self):
         ds_name = "train"
@@ -180,6 +162,10 @@ class Main:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
         )
+        criterion = utils.SegmentationLoss(
+            alpha=0.25, gamma=2.0, dice_weight=0.7, 
+            focal_weight=1.2, smooth=1e-6
+        )
         
         best_val_loss = float('inf')
         patience_counter = 0
@@ -201,7 +187,7 @@ class Main:
                     optimizer.zero_grad()
                     outputs = model(images, categories)
                     
-                    loss = self._combined_loss(outputs, masks)
+                    loss = criterion(outputs, masks, loss_type='boundary_enhanced')
                     
                     # Check for NaN loss
                     if torch.isnan(loss) or torch.isinf(loss):
@@ -219,7 +205,7 @@ class Main:
                     num_batches += 1
                     
                     if batch_idx % 20 == 0:
-                        logger.info(f"Epoch {epoch+1}/{n_epochs}, Batch {batch_idx}, Loss: {loss.item():.4f}")
+                        logger.info(f"- Batch {batch_idx}/{len(train_loader)}, Loss: {loss.item():.4f}")
                     
                 except Exception as e:
                     logger.error(f"Error in training batch {batch_idx}: {e}")
@@ -228,7 +214,7 @@ class Main:
             if num_batches > 0:
                 avg_train_loss = epoch_train_loss / num_batches
                 train_losses.append(avg_train_loss)
-                logger.info(f"Epoch {epoch+1} - Average Train Loss: {avg_train_loss:.4f}")
+                logger.info(f"Epoch {epoch+1}/{n_epochs} - Average Train Loss: {avg_train_loss:.4f}")
             
             # Validation phase
             if (epoch + 1) % val_interval == 0:
@@ -244,7 +230,7 @@ class Main:
                             categories = categories.to(self.device, non_blocking=True)
                             
                             outputs = model(images, categories)
-                            loss = self._combined_loss(outputs, masks)
+                            loss = criterion(outputs, masks, loss_type='boundary_enhanced')
                             
                             if not (torch.isnan(loss) or torch.isinf(loss)):
                                 epoch_val_loss += loss.item()
@@ -257,7 +243,7 @@ class Main:
                 if val_num_batches > 0:
                     avg_val_loss = epoch_val_loss / val_num_batches
                     val_losses.append(avg_val_loss)
-                    logger.info(f"Epoch {epoch+1} - Average Val Loss: {avg_val_loss:.4f}")
+                    logger.info(f"Epoch {epoch+1}/{n_epochs} - Average Val Loss: {avg_val_loss:.4f}")
                     
                     scheduler.step(avg_val_loss)
                     
@@ -307,7 +293,7 @@ class Main:
             choice = input("Nr: ").strip()
 
             if choice == "1":
-                self.train(n_epochs=50, patience=10, val_interval=1)
+                self.train(n_epochs=100, patience=10, val_interval=1)
             elif choice == "2":
                 self.predict()
             elif choice == "3":
