@@ -434,8 +434,8 @@ class AttentionUNet(nn.Module):
         return out
 
 #ConditionalSegmentationModel = ConditionalFCN
-#ConditionalSegmentationModel = ConditionalUNet
-ConditionalSegmentationModel = AttentionUNet
+ConditionalSegmentationModel = ConditionalUNet
+#ConditionalSegmentationModel = AttentionUNet
 
 if __name__ == "__main__":
     device = 'cpu' #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
