@@ -4,7 +4,7 @@ from torchvision.models import vgg16
 import torch.nn.functional as F
 
 class ConditionalFCN(nn.Module):
-    def __init__(self, n_classes, emb_dim=128, dropout_rate=0.1):
+    def __init__(self, n_classes, emb_dim, dropout_rate):
         super().__init__()
         self.n_classes = n_classes
         self.emb_dim = emb_dim
@@ -132,7 +132,7 @@ class ConditionalFCN(nn.Module):
 ########################################
 
 class ConditionalUNet(nn.Module):
-    def __init__(self, n_classes, input_channels=3, emb_dim=128, dropout_rate=0.1):
+    def __init__(self, n_classes, emb_dim, dropout_rate, input_channels=3):
         super().__init__()
         self.n_classes = n_classes
         self.emb_dim = emb_dim
@@ -310,7 +310,7 @@ class AttentionGate(nn.Module):
         return x * psi
 
 class AttentionUNet(nn.Module):
-    def __init__(self, n_classes, input_channels=3, emb_dim=128, dropout_rate=0.1):
+    def __init__(self, n_classes, emb_dim, dropout_rate, input_channels=3):
         super().__init__()
         self.n_classes = n_classes
         self.emb_dim = emb_dim

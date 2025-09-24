@@ -10,25 +10,40 @@ from PIL import Image
 import joblib
 import config
 
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+torch.cuda.manual_seed_all(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 class Main:
     def __init__(self):
-        self.ds_root = r"D:\Datasets\fcn_datasets\hand"
+        self.ds_root = config.DS_ROOT
         self.res_dir = config.RES_DIR
         self.log_dir = config.LOG_DIR
+        self.n_epochs = config.N_EPOCHS
+        self.patience = config.PATIENCE
+        self.lr = config.LR
+        self.weight_decay = config.WEIGHT_DECAY
+        self.batch_size = config.BATCH_SIZE
+        self.emb_dim = config.EMB_DIM
+        self.dropout_rate = config.DROPOUT_RATE
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.save_model_path = os.path.join(self.res_dir, "best_model.pth")
         self.save_meta_path = os.path.join(self.res_dir, "meta.bin")
-        self.image_size=(224, 224)
+        self.image_size = (224, 224)
     
     def predict(self):
         meta_data = joblib.load(self.save_meta_path)
         categories_classes = meta_data["categories_classes"]
         category_encoder = meta_data["category_encoder"]
         category_decoder = meta_data["category_decoder"]
+        emb_dim = meta_data["emb_dim"]
+        dropout_rate = meta_data["dropout_rate"]
         
         n_classes = len(category_decoder) # categories_classes tidak akurat
         logger.info("Num Classes:", n_classes)
-        model = ConditionalSegmentationModel(n_classes=n_classes).to(self.device)
+        model = ConditionalSegmentationModel(n_classes=n_classes, emb_dim=emb_dim, dropout_rate=dropout_rate).to(self.device)
         logger.info("Loading best model for evaluation...")
         checkpoint = torch.load(self.save_model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -74,16 +89,26 @@ class Main:
                     title = categories_classes.get(category_decoder[category_tensor.item()])
                     helper.predict.plot_predictions(image_orig, orig_size, mask_pred, title)
                     
-    def train(self, n_epochs=100, patience=15, val_interval=1):
-        train_loader, val_loader, test_loader, categories_classes, category_decoder = helper.train.prepare_datasets(self.ds_root, self.image_size, self.log_dir, self.save_meta_path)
+    def train(self, val_interval=1):
+        train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder = helper.train.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
         
+        # save meta
+        meta_data = {
+            "categories_classes": categories_classes,
+            "category_encoder": category_encoder,
+            'category_decoder': category_decoder,
+            'emb_dim': self.emb_dim,
+            'dropout_rate': self.dropout_rate
+        }
+        joblib.dump(meta_data, self.save_meta_path)
+
         logger.info(f"Using device: {self.device}")
 
         n_classes = len(category_decoder)
-        model = ConditionalSegmentationModel(n_classes=n_classes).to(self.device)
+        model = ConditionalSegmentationModel(n_classes=n_classes, emb_dim=self.emb_dim, dropout_rate=self.dropout_rate).to(self.device)
 
         # Optimizer with gradient clipping
-        optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
+        optimizer = optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
         )
@@ -97,13 +122,13 @@ class Main:
         train_losses = []
         val_losses = []
 
-        for epoch in range(n_epochs):
+        for epoch in range(self.n_epochs):
             # Training phase
             model.train()
             epoch_train_loss = 0.0
             num_batches = 0
             
-            logger.info(f"Epoch {epoch+1}/{n_epochs}")
+            logger.info(f"Epoch {epoch+1}/{self.n_epochs}")
             for batch_idx, (images, masks, categories) in enumerate(train_loader):
                 try:
                     images = images.to(self.device, non_blocking=True)
@@ -186,9 +211,9 @@ class Main:
                         logger.info(f"- New best model saved with val loss: {avg_val_loss:.4f}")
                     else:
                         patience_counter += 1
-                        logger.info(f"- Patience: {patience_counter}/{patience}")
+                        logger.info(f"- Patience: {patience_counter}/{self.patience}")
                     
-                    if patience_counter >= patience:
+                    if patience_counter >= self.patience:
                         logger.info("= Early stopping triggered!")
                         break
         

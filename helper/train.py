@@ -12,7 +12,6 @@ from utils import logger
 import os
 from torch.utils.data import DataLoader
 import json
-import joblib
 
 class DatasetManager(Dataset):
     def __init__(self, images_data, labels_data, categories_data, transform=None, augment=False):
@@ -382,7 +381,7 @@ def _create_dataset(coco_data, dir_root, dir_name, category_id_to_index, target_
     logger.info(f"Dataset created: {len(images_data)} samples, {failed_loads} failed loads")
     return images_data, labels_data, categories_data
 
-def prepare_datasets(ds_root, image_size, log_dir, save_meta_path):
+def prepare_datasets(batch_size, ds_root, image_size, log_dir):
         ds_name = "train"
         logger.info("Loading COCO data...")
         coco_data_train = _load_coco_data(ds_root, ds_name)
@@ -439,19 +438,11 @@ def prepare_datasets(ds_root, image_size, log_dir, save_meta_path):
         logger.info("Val: ", len(val_dataset))
         logger.info("Test: ", len(test_dataset))
         
-        train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
-        val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False, num_workers=0, pin_memory=True)
-        test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=0, pin_memory=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
-        # save meta
-        meta_data = {
-            "categories_classes": categories_classes,
-            "category_encoder": category_encoder,
-            'category_decoder': category_decoder
-        }
-        joblib.dump(meta_data, save_meta_path)
-
-        return train_loader, val_loader, test_loader, categories_classes, category_decoder
+        return train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder
 
 def plot_category_distribution(categories_data, categories, index_to_category_id):
     """Plot distribution of categories in dataset"""
