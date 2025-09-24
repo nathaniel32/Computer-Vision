@@ -2,7 +2,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
-import logging
+from utils import logger
 import utils
 from model import ConditionalSegmentationModel
 import json
@@ -11,9 +11,6 @@ from PIL import Image
 import joblib
 import matplotlib.pyplot as plt
 import cv2
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 class Main:
     def __init__(self):
@@ -76,6 +73,10 @@ class Main:
         train_dataset = utils.DatasetManager(X_train, Y_train, Cat_train, augment=True)
         val_dataset = utils.DatasetManager(X_valid, Y_valid, Cat_valid, augment=False)
         test_dataset = utils.DatasetManager(X_test, Y_test, Cat_test, augment=False)
+
+        logger.info("Train: ", len(train_dataset))
+        logger.info("Val: ", len(val_dataset))
+        logger.info("Test: ", len(test_dataset))
         
         train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
         val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False, num_workers=0, pin_memory=True)
@@ -98,7 +99,7 @@ class Main:
         category_decoder = meta_data["category_decoder"]
         
         n_classes = len(category_decoder) # categories_classes tidak akurat
-        print("Num Classes:", n_classes)
+        logger.info("Num Classes:", n_classes)
         model = ConditionalSegmentationModel(n_classes=n_classes).to(self.device)
         logger.info("Loading best model for evaluation...")
         checkpoint = torch.load(self.save_model_path)
@@ -111,9 +112,9 @@ class Main:
                     break
 
                 while True:
-                    print("\nID\tCategory")
+                    logger.info("\nID\tCategory")
                     for key, value in categories_classes.items():
-                        print(f"{key}\t {value}")
+                        logger.info(f"{key}\t {value}")
 
                     cat_id = input("\nCategory ID: ")
                     if not cat_id:
@@ -122,7 +123,7 @@ class Main:
                     cat_id = int(cat_id)
                     cat_index = category_encoder[cat_id]
 
-                    print("Category Index:", category_decoder[cat_index])
+                    logger.info("Category Index:", category_decoder[cat_index])
 
                     # load gambar asli
                     image_orig = Image.open(img_path).convert('RGB')
@@ -154,6 +155,8 @@ class Main:
                     plt.show()
 
     def train(self, n_epochs=100, patience=15, val_interval=1):
+        logger.clear()
+
         train_loader, val_loader, test_loader, categories_classes, category_decoder = self._prepare_datasets()
         
         logger.info(f"Using device: {self.device}")
@@ -182,6 +185,7 @@ class Main:
             epoch_train_loss = 0.0
             num_batches = 0
             
+            logger.info(f"Epoch {epoch+1}/{n_epochs}")
             for batch_idx, (images, masks, categories) in enumerate(train_loader):
                 try:
                     images = images.to(self.device, non_blocking=True)
@@ -195,7 +199,7 @@ class Main:
                     
                     # Check for NaN loss
                     if torch.isnan(loss) or torch.isinf(loss):
-                        logger.warning(f"NaN/Inf loss detected at epoch {epoch}, batch {batch_idx}")
+                        logger.warning(f"!! NaN/Inf loss detected at epoch {epoch}, batch {batch_idx}")
                         continue
                     
                     loss.backward()
@@ -208,17 +212,17 @@ class Main:
                     epoch_train_loss += loss.item()
                     num_batches += 1
                     
-                    if batch_idx % 20 == 0:
-                        logger.info(f"- Batch {batch_idx}/{len(train_loader)}, Loss: {loss.item():.4f}")
+                    if batch_idx % 20 == 0 or batch_idx+1==len(train_loader):
+                        logger.info(f"- Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item():.4f}")
                     
                 except Exception as e:
-                    logger.error(f"Error in training batch {batch_idx}: {e}")
+                    logger.error(f"!!! Error in training batch {batch_idx}: {e}")
                     continue
             
             if num_batches > 0:
                 avg_train_loss = epoch_train_loss / num_batches
                 train_losses.append(avg_train_loss)
-                logger.info(f"Epoch {epoch+1}/{n_epochs} - Average Train Loss: {avg_train_loss:.4f}")
+                logger.info(f"- Average Train Loss: {avg_train_loss:.4f}")
             
             # Validation phase
             if (epoch + 1) % val_interval == 0:
@@ -241,13 +245,13 @@ class Main:
                                 val_num_batches += 1
                         
                         except Exception as e:
-                            logger.error(f"Error in validation batch {batch_idx}: {e}")
+                            logger.error(f"!!! Error in validation batch {batch_idx}: {e}")
                             continue
                 
                 if val_num_batches > 0:
                     avg_val_loss = epoch_val_loss / val_num_batches
                     val_losses.append(avg_val_loss)
-                    logger.info(f"Epoch {epoch+1}/{n_epochs} - Average Val Loss: {avg_val_loss:.4f}")
+                    logger.info(f"- Average Val Loss: {avg_val_loss:.4f}")
                     
                     scheduler.step(avg_val_loss)
                     
@@ -261,13 +265,13 @@ class Main:
                             'epoch': epoch,
                             'val_loss': avg_val_loss,
                         }, self.save_model_path)
-                        logger.info(f"New best model saved with val loss: {avg_val_loss:.4f}")
+                        logger.info(f"- New best model saved with val loss: {avg_val_loss:.4f}")
                     else:
-                        logger.info(f"Patience: {patience_counter}/{patience}")
+                        logger.info(f"- Patience: {patience_counter}/{patience}")
                         patience_counter += 1
                     
                     if patience_counter >= patience:
-                        logger.info("Early stopping triggered!")
+                        logger.info("= Early stopping triggered!")
                         break
         
         # plot graph
@@ -289,10 +293,10 @@ class Main:
     def main(self):
         os.makedirs(self.res_dir, exist_ok=True)
         while True:
-            print("\n=== Menu ===")
-            print("1. Train model")
-            print("2. Predict")
-            print("3. Exit")
+            logger.info("\n=== Menu ===")
+            logger.info("1. Train model")
+            logger.info("2. Predict")
+            logger.info("3. Exit")
 
             choice = input("Nr: ").strip()
 

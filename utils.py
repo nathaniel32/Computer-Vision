@@ -1,6 +1,5 @@
 import json
 import os
-import logging
 from collections import defaultdict
 import cv2
 import numpy as np
@@ -11,8 +10,40 @@ from torch.utils.data import Dataset
 import torch.nn.functional as F
 import torch.nn as nn
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+class Logging:
+    def __init__(self, file_path="results/log.txt"):
+        self.file_path = file_path
+        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
+
+    def clear(self) -> None:
+        with open(self.file_path, "w") as f:
+            f.write("")
+
+    def _write_to_file(self, message: str) -> None:
+        with open(self.file_path, "a") as f:
+            f.write(message + "\n")
+
+    def info(self, *args: object) -> None:
+        args_str = " ".join(str(arg) for arg in args) if args else ""
+        if args_str:
+            print(args_str)
+            self._write_to_file(args_str)
+
+    def warning(self, *args: object) -> None:
+        args_str = " ".join(str(arg) for arg in args) if args else ""
+        if args_str:
+            msg = f"Warning: {args_str}"
+            print(msg)
+            self._write_to_file(msg)
+
+    def error(self, *args: object) -> None:
+        args_str = " ".join(str(arg) for arg in args) if args else ""
+        if args_str:
+            msg = f"Error: {args_str}"
+            print(msg)
+            self._write_to_file(msg)
+
+logger = Logging()
 
 class DatasetManager(Dataset):
     def __init__(self, images_data, labels_data, categories_data, transform=None, augment=False):
@@ -410,13 +441,13 @@ def plot_category_distribution(categories_data, categories, index_to_category_id
     plt.grid(axis='y', alpha=0.3)
     plt.show()
     
-    # Print statistics
-    print(f"Dataset Statistics:")
-    print(f"  Total samples: {sum(counts)}")
-    print(f"  Number of categories: {len(names)}")
-    print(f"  Most frequent: {max(category_counts, key=category_counts.get)} ({max(counts)} samples)")
-    print(f"  Least frequent: {min(category_counts, key=category_counts.get)} ({min(counts)} samples)")
-    print(f"  Imbalance ratio: {max(counts)/min(counts):.2f}")
+    # statistics
+    logger.info(f"Dataset Statistics:")
+    logger.info(f"  Total samples: {sum(counts)}")
+    logger.info(f"  Number of categories: {len(names)}")
+    logger.info(f"  Most frequent: {max(category_counts, key=category_counts.get)} ({max(counts)} samples)")
+    logger.info(f"  Least frequent: {min(category_counts, key=category_counts.get)} ({min(counts)} samples)")
+    logger.info(f"  Imbalance ratio: {max(counts)/min(counts):.2f}")
 
 def plot_data_samples(images_data, labels_data, categories_data, categories, index_to_category_id, num_samples=15):
     """Plot sample data for inspection"""
@@ -453,9 +484,9 @@ def plot_data_samples(images_data, labels_data, categories_data, categories, ind
         plt.tight_layout()
         plt.show()
         
-        print(f"Sample {idx+1}: {category_name} (index: {category_index})")
-        print(f"  Mask pixels: {np.sum(mask > 0)}/{mask.size} ({100*np.sum(mask > 0)/mask.size:.1f}%)")
-        print()
+        logger.info(f"Sample {idx+1}: {category_name} (index: {category_index})")
+        logger.info(f"  Mask pixels: {np.sum(mask > 0)}/{mask.size} ({100*np.sum(mask > 0)/mask.size:.1f}%)")
+        logger.info()
 
 def plot_training_curves(train_losses, val_losses):
     """Plot training and validation loss curves"""
@@ -601,41 +632,41 @@ def evaluate_and_plot_predictions(model, val_loader, device, categories, index_t
                 plt.tight_layout()
                 plt.show()
                 
-                # Print detailed metrics
-                print(f"Sample {sample_count + 1}: {category_name}")
-                print(f"  IoU: {iou:.3f}")
-                print(f"  Dice: {dice:.3f}")
-                print(f"  Accuracy: {accuracy:.3f}")
-                print(f"  Pred range: [{mask_pred.min():.3f}, {mask_pred.max():.3f}]")
-                print(f"  Pred mean: {mask_pred.mean():.3f}")
-                print()
+                # detailed metrics
+                logger.info(f"Sample {sample_count + 1}: {category_name}")
+                logger.info(f"  IoU: {iou:.3f}")
+                logger.info(f"  Dice: {dice:.3f}")
+                logger.info(f"  Accuracy: {accuracy:.3f}")
+                logger.info(f"  Pred range: [{mask_pred.min():.3f}, {mask_pred.max():.3f}]")
+                logger.info(f"  Pred mean: {mask_pred.mean():.3f}")
+                logger.info()
                 
                 sample_count += 1
                 
             if sample_count >= num_samples:
                 break
     
-    # Print overall performance summary
-    print("=" * 60)
-    print("PERFORMANCE SUMMARY")
-    print("=" * 60)
+    # overall performance summary
+    logger.info("=" * 60)
+    logger.info("PERFORMANCE SUMMARY")
+    logger.info("=" * 60)
     
     if total_samples > 0:
-        print(f"Overall Performance ({total_samples} samples):")
-        print(f"  Average IoU: {total_iou/total_samples:.3f}")
-        print(f"  Average Dice: {total_dice/total_samples:.3f}")
-        print()
+        logger.info(f"Overall Performance ({total_samples} samples):")
+        logger.info(f"  Average IoU: {total_iou/total_samples:.3f}")
+        logger.info(f"  Average Dice: {total_dice/total_samples:.3f}")
+        logger.info()
         
-        print("Per-Category Performance:")
+        logger.info("Per-Category Performance:")
         for cat_name, metrics_list in category_metrics.items():
             ious = [m['iou'] for m in metrics_list]
             dices = [m['dice'] for m in metrics_list]
             accuracies = [m['accuracy'] for m in metrics_list]
             
-            print(f"  {cat_name} (n={len(metrics_list)}):")
-            print(f"    IoU: {np.mean(ious):.3f} ± {np.std(ious):.3f}")
-            print(f"    Dice: {np.mean(dices):.3f} ± {np.std(dices):.3f}")
-            print(f"    Accuracy: {np.mean(accuracies):.3f} ± {np.std(accuracies):.3f}")
-        print()
+            logger.info(f"  {cat_name} (n={len(metrics_list)}):")
+            logger.info(f"    IoU: {np.mean(ious):.3f} ± {np.std(ious):.3f}")
+            logger.info(f"    Dice: {np.mean(dices):.3f} ± {np.std(dices):.3f}")
+            logger.info(f"    Accuracy: {np.mean(accuracies):.3f} ± {np.std(accuracies):.3f}")
+        logger.info()
     
     return category_metrics
