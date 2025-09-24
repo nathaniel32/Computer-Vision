@@ -218,7 +218,7 @@ class Main:
                         break
         
         # plot graph
-        helper.train.plot_training_curves(train_losses, val_losses)
+        helper.train.plot_training_curves(train_losses, val_losses, val_interval)
 
         # Load best model and evaluate
         logger.info("Loading best model for evaluation...")

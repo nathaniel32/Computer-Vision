@@ -10,7 +10,7 @@ class Logging:
             f.write("")
 
     def _write_to_file(self, message: str) -> None:
-        with open(self.file_path, "a") as f:
+        with open(self.file_path, "a", encoding="utf-8") as f:
             f.write(message + "\n")
 
     def info(self, *args: object) -> None:

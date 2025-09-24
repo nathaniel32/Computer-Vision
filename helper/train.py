@@ -518,15 +518,15 @@ def plot_data_samples(images_data, labels_data, categories_data, categories, ind
         logger.info(f"  Mask pixels: {np.sum(mask > 0)}/{mask.size} ({100*np.sum(mask > 0)/mask.size:.1f}%)")
         logger.info()
 
-def plot_training_curves(train_losses, val_losses):
+def plot_training_curves(train_losses, val_losses, val_interval):
     """Plot training and validation loss curves"""
     plt.figure(figsize=(12, 5))
     
     plt.subplot(1, 2, 1)
     plt.plot(train_losses, label='Training Loss', color='blue', alpha=0.7)
-    if val_losses:
-        # Val losses are recorded every 5 epochs
-        val_epochs = [(i+1)*5-1 for i in range(len(val_losses))]
+    if len(val_losses) > 0:
+        # Val losses are recorded every n epochs
+        val_epochs = [(i+1) * val_interval - 1 for i in range(len(val_losses))]
         plt.plot(val_epochs, val_losses, label='Validation Loss', color='red', alpha=0.7)
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
@@ -536,11 +536,10 @@ def plot_training_curves(train_losses, val_losses):
     
     plt.subplot(1, 2, 2)
     if len(train_losses) > 10:
-        # Plot smoothed version for better visualization
-        window = min(10, len(train_losses)//5)
+        window = max(1, min(10, len(train_losses)//5))
         smoothed = np.convolve(train_losses, np.ones(window)/window, mode='valid')
         plt.plot(range(window-1, len(train_losses)), smoothed, 
-                label='Smoothed Training Loss', color='darkblue')
+                 label='Smoothed Training Loss', color='darkblue')
     plt.plot(train_losses, alpha=0.3, color='lightblue', label='Raw Training Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
