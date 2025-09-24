@@ -1,96 +1,24 @@
 import numpy as np
-from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
 from utils import logger
-import utils
+import helper.train
+import helper.predict
 from model import ConditionalSegmentationModel
-import json
 import os
 from PIL import Image
 import joblib
-import matplotlib.pyplot as plt
-import cv2
+import config
 
 class Main:
     def __init__(self):
         self.ds_root = r"D:\Datasets\fcn_datasets\hand"
-        self.res_dir = "results"
+        self.res_dir = config.RES_DIR
+        self.log_dir = config.LOG_DIR
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.save_model_path = os.path.join(self.res_dir, "best_model.pth")
         self.save_meta_path = os.path.join(self.res_dir, "meta.bin")
         self.image_size=(224, 224)
-    
-    def _prepare_datasets(self):
-        ds_name = "train"
-        logger.info("Loading COCO data...")
-        coco_data_train = utils.load_coco_data(self.ds_root, ds_name)
-        logger.info("Creating category mappings...")
-        categories_classes, category_encoder, category_decoder = utils.create_category_mapping(coco_data_train)
-        logger.info("Creating dataset...")
-        X_train, Y_train, Cat_train = utils.create_dataset(
-            coco_data_train, self.ds_root, ds_name, category_encoder, self.image_size
-        )
-
-        ds_name = "valid"
-        logger.info("Loading COCO data...")
-        coco_data_valid = utils.load_coco_data(self.ds_root, ds_name)
-        logger.info("Creating dataset...")
-        X_valid, Y_valid, Cat_valid = utils.create_dataset(
-            coco_data_valid, self.ds_root, ds_name, category_encoder, self.image_size
-        )
-
-        ds_name = "test"
-        logger.info("Loading COCO data...")
-        coco_data_test = utils.load_coco_data(self.ds_root, ds_name)
-        logger.info("Creating dataset...")
-        X_test, Y_test, Cat_test = utils.create_dataset(
-            coco_data_test, self.ds_root, ds_name, category_encoder, self.image_size
-        )
-
-        if len(X_train) == 0:
-            raise ValueError("No Data!")
-        
-        # save json
-        output_path = os.path.join(self.res_dir, "annotations_train.json")
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(coco_data_train, f, indent=4)
-
-        output_path = os.path.join(self.res_dir, "annotations_valid.json")
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(coco_data_valid, f, indent=4)
-
-        output_path = os.path.join(self.res_dir, "annotations_test.json")
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(coco_data_test, f, indent=4)
-        
-        # Plot category distribution
-        utils.plot_category_distribution(Cat_train, categories_classes, category_decoder)
-        
-        # Plot sample data
-        utils.plot_data_samples(X_train, Y_train, Cat_train, categories_classes, category_decoder, num_samples=1)
-
-        train_dataset = utils.DatasetManager(X_train, Y_train, Cat_train, augment=True)
-        val_dataset = utils.DatasetManager(X_valid, Y_valid, Cat_valid, augment=False)
-        test_dataset = utils.DatasetManager(X_test, Y_test, Cat_test, augment=False)
-
-        logger.info("Train: ", len(train_dataset))
-        logger.info("Val: ", len(val_dataset))
-        logger.info("Test: ", len(test_dataset))
-        
-        train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, num_workers=0, pin_memory=True, drop_last=True)
-        val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False, num_workers=0, pin_memory=True)
-        test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False, num_workers=0, pin_memory=True)
-
-        # save meta
-        meta_data = {
-            "categories_classes": categories_classes,
-            "category_encoder": category_encoder,
-            'category_decoder': category_decoder
-        }
-        joblib.dump(meta_data, self.save_meta_path)
-
-        return train_loader, val_loader, test_loader, categories_classes, category_decoder
     
     def predict(self):
         meta_data = joblib.load(self.save_meta_path)
@@ -134,7 +62,7 @@ class Main:
 
                     # prepare data
                     empty_mask = np.zeros(self.image_size)
-                    dataset = utils.DatasetManager([image_pil], [empty_mask], [cat_index])
+                    dataset = helper.train.DatasetManager([image_pil], [empty_mask], [cat_index])
                     image_tensor, _, category_tensor = dataset[0]
                     image_tensor = image_tensor.unsqueeze(0).to(self.device)
                     category_tensor = category_tensor.unsqueeze(0).to(self.device)
@@ -143,19 +71,11 @@ class Main:
                     outputs = model(image_tensor, category_tensor)
                     mask_pred = outputs.squeeze().cpu().numpy()
 
-                    # resize mask ke ukuran asli
-                    mask_resized = cv2.resize(mask_pred, orig_size)
-
-                    # plot
-                    plt.figure(figsize=(8,8))
-                    plt.imshow(image_orig)
-                    plt.imshow(mask_resized, cmap='jet', alpha=0.5)
-                    plt.title(categories_classes.get(category_decoder[category_tensor.item()]), fontsize=10)
-                    plt.axis('off')
-                    plt.show()
-
+                    title = categories_classes.get(category_decoder[category_tensor.item()])
+                    helper.predict.plot_predictions(image_orig, orig_size, mask_pred, title)
+                    
     def train(self, n_epochs=100, patience=15, val_interval=1):
-        train_loader, val_loader, test_loader, categories_classes, category_decoder = self._prepare_datasets()
+        train_loader, val_loader, test_loader, categories_classes, category_decoder = helper.train.prepare_datasets(self.ds_root, self.image_size, self.log_dir, self.save_meta_path)
         
         logger.info(f"Using device: {self.device}")
 
@@ -167,7 +87,7 @@ class Main:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
         )
-        criterion = utils.SegmentationLoss(
+        criterion = helper.train.SegmentationLoss(
             alpha=0.25, gamma=2.0, dice_weight=0.7, 
             focal_weight=1.2, smooth=1e-6
         )
@@ -273,7 +193,7 @@ class Main:
                         break
         
         # plot graph
-        utils.plot_training_curves(train_losses, val_losses)
+        helper.train.plot_training_curves(train_losses, val_losses)
 
         # Load best model and evaluate
         logger.info("Loading best model for evaluation...")
@@ -282,14 +202,13 @@ class Main:
         
         # test
         logger.info("Evaluating model and plotting predictions...")
-        category_metrics = utils.evaluate_and_plot_predictions(
+        category_metrics = helper.train.evaluate_and_plot_predictions(
             model, test_loader, self.device, categories_classes, category_decoder, num_samples=100
         )
         
         logger.info("Training and evaluation completed successfully!")
 
     def main(self):
-        os.makedirs(self.res_dir, exist_ok=True)
         while True:
             logger.info("\n=== Menu ===")
             logger.info("1. Train model")
