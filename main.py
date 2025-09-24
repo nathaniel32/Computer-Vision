@@ -265,8 +265,8 @@ class Main:
                         }, self.save_model_path)
                         logger.info(f"- New best model saved with val loss: {avg_val_loss:.4f}")
                     else:
-                        logger.info(f"- Patience: {patience_counter}/{patience}")
                         patience_counter += 1
+                        logger.info(f"- Patience: {patience_counter}/{patience}")
                     
                     if patience_counter >= patience:
                         logger.info("= Early stopping triggered!")
