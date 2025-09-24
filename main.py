@@ -29,8 +29,8 @@ class Main:
         self.emb_dim = config.EMB_DIM
         self.dropout_rate = config.DROPOUT_RATE
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.save_model_path = os.path.join(self.res_dir, "best_model.pth")
-        self.save_meta_path = os.path.join(self.res_dir, "meta.bin")
+        self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
+        self.save_meta_path = os.path.join(config.RES_DIR, "meta.bin")
         self.image_size = (224, 224)
     
     def predict(self):
@@ -238,16 +238,15 @@ class Main:
             logger.info("\n=== Menu ===")
             logger.info("1. Train model")
             logger.info("2. Predict")
-            logger.info("3. Exit")
 
             choice = input("Nr: ").strip()
 
-            if choice == "1":
+            if not choice:
+                break
+            elif choice == "1":
                 logger.clear()
                 self.train()
             elif choice == "2":
                 self.predict()
-            elif choice == "3":
-                break
 
 Main().main()
