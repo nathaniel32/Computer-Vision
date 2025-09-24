@@ -155,8 +155,6 @@ class Main:
                     plt.show()
 
     def train(self, n_epochs=100, patience=15, val_interval=1):
-        logger.clear()
-
         train_loader, val_loader, test_loader, categories_classes, category_decoder = self._prepare_datasets()
         
         logger.info(f"Using device: {self.device}")
@@ -301,7 +299,8 @@ class Main:
             choice = input("Nr: ").strip()
 
             if choice == "1":
-                self.train(n_epochs=100, patience=10, val_interval=1)
+                logger.clear()
+                self.train()
             elif choice == "2":
                 self.predict()
             elif choice == "3":
