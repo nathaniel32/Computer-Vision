@@ -46,7 +46,7 @@ class Main:
         
         n_classes = len(category_decoder) # categories_classes tidak akurat
         logger.info("Num Classes:", n_classes)
-        model = SegmentationModel(n_classes=n_classes, emb_dim=emb_dim, dropout_rate=dropout_rate).to(self.device)
+        model = SegmentationModel(n_classes=n_classes).to(self.device) #emb_dim=emb_dim, dropout_rate=dropout_rate
         logger.info("Loading best model for evaluation...")
         checkpoint = torch.load(self.save_model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
