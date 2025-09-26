@@ -31,7 +31,7 @@ class PlotManager:
             plt.subplot(1, 3, 3)
             # Overlay mask on image
             plt.imshow(image)
-            plt.imshow(mask, cmap="tab20", alpha=0.5)
+            plt.imshow(mask, alpha=0.5)
             plt.axis('off')
             
             plt.tight_layout()
@@ -144,12 +144,12 @@ class PlotManager:
                     plt.axis('off')
                     
                     plt.subplot(1, 3, 2)
-                    plt.imshow(mask_true, cmap='tab20', vmin=0, vmax=num_classes-1)
+                    plt.imshow(mask_true)
                     plt.title("Ground Truth", fontsize=10)
                     plt.axis('off')
                     
                     plt.subplot(1, 3, 3)
-                    plt.imshow(mask_pred_class, cmap='tab20', vmin=0, vmax=num_classes-1)
+                    plt.imshow(mask_pred_class)
                     plt.title("Prediction", fontsize=10)
                     plt.axis('off')
                     
@@ -178,7 +178,7 @@ class PlotManager:
         # plot
         plt.figure(figsize=(8,8))
         plt.imshow(image_orig)
-        plt.imshow(mask_resized, cmap='jet', alpha=0.5)
+        plt.imshow(mask_resized, alpha=0.5)
         plt.title(title, fontsize=10)
         plt.axis('off')
         plt.show()
