@@ -70,7 +70,7 @@ class PlotManager:
         plt.tight_layout()
         plt.show()
 
-    def evaluate_and_plot_predictions(self, model, val_loader, device, categories, index_to_category_id, num_samples=8):
+    def evaluate_and_plot_predictions(self, model, val_loader, device, categories_classes, num_samples=8):
         """Evaluate model and plot multi-class predictions with metrics"""
         model.eval()
         
@@ -80,7 +80,7 @@ class PlotManager:
         category_metrics = defaultdict(list)
         
         sample_count = 0
-        num_classes = len(categories)
+        num_classes = len(categories_classes)
         
         with torch.no_grad():
             for batch_idx, (images, masks) in enumerate(val_loader):
@@ -107,8 +107,7 @@ class PlotManager:
                     
                     # Category name for sample (optional, if one main category per image)
                     category_idx = 0  # default
-                    original_category_id = index_to_category_id.get(category_idx, None)
-                    category_name = categories.get(original_category_id, "Unknown")
+                    category_name = categories_classes.get(category_idx)
                     
                     # Metrics per class
                     ious = []
@@ -167,7 +166,7 @@ class PlotManager:
         if total_samples > 0:
             logger.info(f"Overall Performance ({total_samples} samples):")
             for c in range(num_classes):
-                logger.info(f"  Class {c} ({categories.get(c, 'Unknown')}):")
+                logger.info(f"  Class {c} ({categories_classes.get(c)}):")
                 logger.info(f"    Average IoU: {total_iou_per_class[c]/total_samples:.3f}")
                 logger.info(f"    Average Dice: {total_dice_per_class[c]/total_samples:.3f}")
         

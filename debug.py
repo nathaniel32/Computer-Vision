@@ -8,4 +8,4 @@ log_dir = config.LOG_DIR
 image_size = (224, 224)
 
 coco_manager = CocoManager()
-train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder = coco_manager.prepare_datasets(batch_size, ds_root, image_size, log_dir)
+train_loader, val_loader, test_loader, categories_classes = coco_manager.prepare_datasets(batch_size, ds_root, image_size, log_dir)

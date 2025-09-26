@@ -36,52 +36,8 @@ class CocoManager:
         except Exception as e:
             logger.error(f"Error loading COCO data: {e}")
             raise
-
-    def _create_category_mapping(self, coco_data):
-        # Ambil semua kategori COCO
-        categories = {cat['id']: cat['name'] for cat in coco_data['categories']}
-        
-        # Tambahkan background sebagai kategori resmi dengan id khusus, misal 0
-        categories[0] = 'background'
-        
-        # Ambil semua category_id yang dipakai di annotations
-        annotation_category_ids = [ann['category_id'] for ann in coco_data['annotations']]
-        unique_category_ids = sorted(list(set(annotation_category_ids)))
-        
-        # Validasi kategori yang hilang
-        missing_categories = [cat_id for cat_id in unique_category_ids if cat_id not in categories]
-        if missing_categories:
-            logger.warning(f"Found annotations with missing category definitions: {missing_categories}")
-        
-        # Buat mapping, index 0 untuk background
-        category_id_to_index = {0: 0}  # background
-        index_to_category_id = {0: 0}  # background
-
-        for idx, cat_id in enumerate(unique_category_ids, start=1):
-            category_id_to_index[cat_id] = idx
-            index_to_category_id[idx] = cat_id
-
-        # Hitung distribusi kelas
-        category_counts = defaultdict(int)
-        for cat_id in annotation_category_ids:
-            category_counts[cat_id] += 1
-
-        logger.info(f"Category distribution: {dict(category_counts)}")
-
-        # Cek class imbalance
-        if category_counts:
-            max_count = max(category_counts.values())
-            min_count = min(category_counts.values())
-            if max_count / min_count > 10:
-                logger.warning(f"Severe class imbalance detected. Ratio: {max_count/min_count:.2f}")
-
-        print(categories)
-        print(category_id_to_index)
-        print(index_to_category_id)
-
-        return categories, category_id_to_index, index_to_category_id
     
-    def _create_dataset(self, coco_data, dir_root, dir_name, category_id_to_index, target_size):
+    def _create_dataset(self, coco_data, dir_root, dir_name, target_size):
         images_data = []
         labels_data = []
         failed_loads = 0
@@ -114,7 +70,7 @@ class CocoManager:
             mask = np.zeros((image_data['height'], image_data['width']), dtype=np.uint8)
 
             for annotation in ann_by_image.get(img_id, []):
-                category_index = category_id_to_index[annotation['category_id']]
+                category_index = annotation['category_id']
                 for poly in annotation['segmentation']:
                     poly = np.array(poly).reshape((-1, 2)).astype(np.int32)
                     cv2.fillPoly(mask, [poly], color=category_index)
@@ -133,10 +89,10 @@ class CocoManager:
         logger.info("Loading COCO data...")
         coco_data_train = self._load_coco_data(ds_root, ds_name)
         logger.info("Creating category mappings...")
-        categories_classes, category_encoder, category_decoder = self._create_category_mapping(coco_data_train)
+        categories_classes = {cat['id']: cat['name'] for cat in coco_data_train['categories']}
         logger.info("Creating dataset...")
         X_train, Y_train = self._create_dataset(
-            coco_data_train, ds_root, ds_name, category_encoder, image_size
+            coco_data_train, ds_root, ds_name, image_size
         )
 
         ds_name = "valid"
@@ -144,7 +100,7 @@ class CocoManager:
         coco_data_valid = self._load_coco_data(ds_root, ds_name)
         logger.info("Creating dataset...")
         X_valid, Y_valid = self._create_dataset(
-            coco_data_valid, ds_root, ds_name, category_encoder, image_size
+            coco_data_valid, ds_root, ds_name, image_size
         )
 
         ds_name = "test"
@@ -152,7 +108,7 @@ class CocoManager:
         coco_data_test = self._load_coco_data(ds_root, ds_name)
         logger.info("Creating dataset...")
         X_test, Y_test = self._create_dataset(
-            coco_data_test, ds_root, ds_name, category_encoder, image_size
+            coco_data_test, ds_root, ds_name, image_size
         )
 
         if len(X_train) == 0:
@@ -186,4 +142,4 @@ class CocoManager:
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
-        return train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder
+        return train_loader, val_loader, test_loader, categories_classes

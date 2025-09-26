@@ -93,13 +93,11 @@ class Main:
                     self.plot_manager.plot_predictions(image_orig, orig_size, mask_pred, title)
                     
     def train(self, val_interval=1):
-        train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder = self.coco_manager.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
+        train_loader, val_loader, test_loader, categories_classes = self.coco_manager.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
         
         # save meta
         meta_data = {
             "categories_classes": categories_classes,
-            "category_encoder": category_encoder,
-            'category_decoder': category_decoder,
             'emb_dim': self.emb_dim,
             'dropout_rate': self.dropout_rate
         }
@@ -107,7 +105,7 @@ class Main:
 
         logger.info(f"Using device: {self.device}")
 
-        n_classes = len(category_decoder)
+        n_classes = len(categories_classes)
         model = SegmentationModel(n_classes=n_classes).to(self.device) #emb_dim=self.emb_dim, dropout_rate=self.dropout_rate
 
         # Optimizer with gradient clipping
@@ -235,7 +233,7 @@ class Main:
         # test
         logger.info("Evaluating model and plotting predictions...")
         category_metrics = self.plot_manager.evaluate_and_plot_predictions(
-            model, test_loader, self.device, categories_classes, category_decoder, num_samples=100
+            model, test_loader, self.device, categories_classes, num_samples=100
         )
         
         logger.info("Training and evaluation completed successfully!")
