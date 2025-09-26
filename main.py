@@ -27,7 +27,6 @@ class Main:
         self.lr = config.LR
         self.weight_decay = config.WEIGHT_DECAY
         self.batch_size = config.BATCH_SIZE
-        self.emb_dim = config.EMB_DIM
         self.dropout_rate = config.DROPOUT_RATE
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
@@ -39,14 +38,11 @@ class Main:
     def predict(self):
         meta_data = joblib.load(self.save_meta_path)
         categories_classes = meta_data["categories_classes"]
-        category_encoder = meta_data["category_encoder"]
-        category_decoder = meta_data["category_decoder"]
-        emb_dim = meta_data["emb_dim"]
         dropout_rate = meta_data["dropout_rate"]
         
-        n_classes = len(category_decoder) # categories_classes tidak akurat
+        n_classes = len(categories_classes)
         logger.info("Num Classes:", n_classes)
-        model = SegmentationModel(n_classes=n_classes).to(self.device) #emb_dim=emb_dim, dropout_rate=dropout_rate
+        model = SegmentationModel(n_classes=n_classes).to(self.device)
         logger.info("Loading best model for evaluation...")
         checkpoint = torch.load(self.save_model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -67,9 +63,8 @@ class Main:
                         break
                     
                     cat_id = int(cat_id)
-                    cat_index = category_encoder[cat_id]
 
-                    logger.info("Category Index:", category_decoder[cat_index])
+                    logger.info("Category Index:", cat_id)
 
                     # load gambar asli
                     image_orig = Image.open(img_path).convert('RGB')
@@ -80,7 +75,7 @@ class Main:
 
                     # prepare data
                     empty_mask = np.zeros(self.image_size)
-                    dataset = DatasetManager([image_pil], [empty_mask], [cat_index])
+                    dataset = DatasetManager([image_pil], [empty_mask], [cat_id])
                     image_tensor, _, category_tensor = dataset[0]
                     image_tensor = image_tensor.unsqueeze(0).to(self.device)
                     category_tensor = category_tensor.unsqueeze(0).to(self.device)
@@ -89,7 +84,7 @@ class Main:
                     outputs = model(image_tensor, category_tensor)
                     mask_pred = outputs.squeeze().cpu().numpy()
 
-                    title = categories_classes.get(category_decoder[category_tensor.item()])
+                    title = categories_classes.get(cat_id)
                     self.plot_manager.plot_predictions(image_orig, orig_size, mask_pred, title)
                     
     def train(self, val_interval=1):
@@ -98,7 +93,6 @@ class Main:
         # save meta
         meta_data = {
             "categories_classes": categories_classes,
-            'emb_dim': self.emb_dim,
             'dropout_rate': self.dropout_rate
         }
         joblib.dump(meta_data, self.save_meta_path)
@@ -106,7 +100,7 @@ class Main:
         logger.info(f"Using device: {self.device}")
 
         n_classes = len(categories_classes)
-        model = SegmentationModel(n_classes=n_classes).to(self.device) #emb_dim=self.emb_dim, dropout_rate=self.dropout_rate
+        model = SegmentationModel(n_classes=n_classes).to(self.device)
 
         # Optimizer with gradient clipping
         optimizer = optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)

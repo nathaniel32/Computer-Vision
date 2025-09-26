@@ -9,7 +9,6 @@ PATIENCE = 15
 LR = 0.001
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 15
-EMB_DIM = 128
 DROPOUT_RATE = 0.1
 
 os.makedirs(RES_DIR, exist_ok=True)
