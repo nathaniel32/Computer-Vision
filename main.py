@@ -104,9 +104,7 @@ class Main:
 
         # Optimizer with gradient clipping
         optimizer = optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
-        )
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
         
         criterion = SegmentationLoss(
             num_classes=n_classes,

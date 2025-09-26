@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from utils import logger
+import config
+import os
 
 class PlotManager:
     def plot_data_samples(self, images_data, labels_data, num_samples=15):
@@ -77,7 +79,6 @@ class PlotManager:
         total_samples = 0
         total_iou_per_class = defaultdict(float)
         total_dice_per_class = defaultdict(float)
-        category_metrics = defaultdict(list)
         
         sample_count = 0
         num_classes = len(categories_classes)
@@ -98,6 +99,8 @@ class PlotManager:
                     mask_true = masks[i].squeeze().cpu().numpy()   # (H, W)
                     mask_pred = outputs[i].cpu().numpy()          # (C, H, W)
                     mask_pred_class = np.argmax(mask_pred, axis=0)  # (H, W)
+
+                    np.savetxt(os.path.join(config.LOG_DIR, f"mask_pred_{i}.txt"), mask_pred_class, fmt="%d")
                     
                     # Denormalize image
                     mean = torch.tensor([0.485, 0.456, 0.406]).view(-1, 1, 1)
@@ -105,13 +108,11 @@ class PlotManager:
                     image_denorm = (image * std + mean).clamp(0, 1)
                     image_np = image_denorm.permute(1, 2, 0).numpy()
                     
-                    # Category name for sample (optional, if one main category per image)
-                    category_idx = 0  # default
-                    category_name = categories_classes.get(category_idx)
-                    
                     # Metrics per class
                     ious = []
                     dices = []
+
+                    logger.info("=" * 100)
                     for c in range(num_classes):
                         pred_c = (mask_pred_class == c).astype(np.float32)
                         true_c = (mask_true == c).astype(np.float32)
@@ -125,21 +126,21 @@ class PlotManager:
                         dices.append(dice)
                         total_iou_per_class[c] += iou
                         total_dice_per_class[c] += dice
+
+                        logger.info(f"- Class {c} ({categories_classes.get(c)}):")
+                        logger.info(f"- IoU: {iou}")
+                        logger.info(f"- Dice: {dice}")
+                        logger.info("-" * 50)
                     
                     accuracy = np.mean(mask_pred_class == mask_true)
-                    
-                    category_metrics[category_name].append({
-                        'iou': ious,
-                        'dice': dices,
-                        'accuracy': accuracy
-                    })
-                    
+                    logger.info(f"- Accuracy: {accuracy}")
+
                     # Plot
                     plt.figure(figsize=(15, 5))
                     
                     plt.subplot(1, 3, 1)
                     plt.imshow(image_np)
-                    plt.title(f"Input Image\nCategory: {category_name}", fontsize=10)
+                    plt.title(f"Input Image", fontsize=10)
                     plt.axis('off')
                     
                     plt.subplot(1, 3, 2)
@@ -149,7 +150,7 @@ class PlotManager:
                     
                     plt.subplot(1, 3, 3)
                     plt.imshow(mask_pred_class, cmap='tab20', vmin=0, vmax=num_classes-1)
-                    plt.title("Prediction (multi-class)", fontsize=10)
+                    plt.title("Prediction", fontsize=10)
                     plt.axis('off')
                     
                     plt.tight_layout()
@@ -169,8 +170,6 @@ class PlotManager:
                 logger.info(f"  Class {c} ({categories_classes.get(c)}):")
                 logger.info(f"    Average IoU: {total_iou_per_class[c]/total_samples:.3f}")
                 logger.info(f"    Average Dice: {total_dice_per_class[c]/total_samples:.3f}")
-        
-        return category_metrics
 
     def plot_predictions(self, image_orig, orig_size, mask_pred, title):
         # resize mask ke ukuran asli
