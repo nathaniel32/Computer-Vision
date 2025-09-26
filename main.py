@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 from utils import logger
-from model import ConditionalSegmentationModel
+from model import SegmentationModel
 import os
 from PIL import Image
 import joblib
@@ -46,7 +46,7 @@ class Main:
         
         n_classes = len(category_decoder) # categories_classes tidak akurat
         logger.info("Num Classes:", n_classes)
-        model = ConditionalSegmentationModel(n_classes=n_classes, emb_dim=emb_dim, dropout_rate=dropout_rate).to(self.device)
+        model = SegmentationModel(n_classes=n_classes, emb_dim=emb_dim, dropout_rate=dropout_rate).to(self.device)
         logger.info("Loading best model for evaluation...")
         checkpoint = torch.load(self.save_model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
@@ -108,16 +108,22 @@ class Main:
         logger.info(f"Using device: {self.device}")
 
         n_classes = len(category_decoder)
-        model = ConditionalSegmentationModel(n_classes=n_classes, emb_dim=self.emb_dim, dropout_rate=self.dropout_rate).to(self.device)
+        model = SegmentationModel(n_classes=n_classes).to(self.device) #emb_dim=self.emb_dim, dropout_rate=self.dropout_rate
 
         # Optimizer with gradient clipping
         optimizer = optim.AdamW(model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
         )
+        
         criterion = SegmentationLoss(
-            alpha=0.25, gamma=2.0, dice_weight=0.7, 
-            focal_weight=1.2, smooth=1e-6
+            num_classes=n_classes,
+            alpha=0.25,
+            gamma=2.0,
+            dice_weight=0.5,
+            focal_weight=1.0,
+            class_weights=None,
+            ignore_index=-100
         )
         
         best_val_loss = float('inf')
@@ -132,14 +138,13 @@ class Main:
             num_batches = 0
             
             logger.info(f"Epoch {epoch+1}/{self.n_epochs}")
-            for batch_idx, (images, masks, categories) in enumerate(train_loader):
+            for batch_idx, (images, masks) in enumerate(train_loader):
                 try:
                     images = images.to(self.device, non_blocking=True)
                     masks = masks.to(self.device, non_blocking=True)
-                    categories = categories.to(self.device, non_blocking=True)
                     
                     optimizer.zero_grad()
-                    outputs = model(images, categories)
+                    outputs = model(images)
                     
                     loss = criterion(outputs, masks, loss_type='boundary_enhanced')
                     
@@ -177,13 +182,12 @@ class Main:
                 val_num_batches = 0
                 
                 with torch.no_grad():
-                    for batch_idx, (images, masks, categories) in enumerate(val_loader):
+                    for batch_idx, (images, masks) in enumerate(val_loader):
                         try:
                             images = images.to(self.device, non_blocking=True)
                             masks = masks.to(self.device, non_blocking=True)
-                            categories = categories.to(self.device, non_blocking=True)
-                            
-                            outputs = model(images, categories)
+
+                            outputs = model(images)
                             loss = criterion(outputs, masks, loss_type='boundary_enhanced')
                             
                             if not (torch.isnan(loss) or torch.isinf(loss)):

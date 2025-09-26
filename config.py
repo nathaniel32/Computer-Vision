@@ -4,7 +4,7 @@ DS_ROOT = r"D:\Datasets\fcn_datasets\hand"
 RES_DIR = "result"
 LOG_DIR = "result/logs"
 
-N_EPOCHS = 5
+N_EPOCHS = 50
 PATIENCE = 15
 LR = 0.001
 WEIGHT_DECAY = 1e-4
