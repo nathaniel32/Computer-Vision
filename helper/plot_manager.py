@@ -173,7 +173,7 @@ class PlotManager:
 
     def plot_predictions(self, image_orig, orig_size, mask_pred, title):
         # resize mask ke ukuran asli
-        mask_resized = cv2.resize(mask_pred, orig_size)
+        mask_resized = cv2.resize(mask_pred, orig_size, interpolation=cv2.INTER_NEAREST)
 
         # plot
         plt.figure(figsize=(8,8))

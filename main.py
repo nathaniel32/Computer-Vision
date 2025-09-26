@@ -76,16 +76,16 @@ class Main:
                     # prepare data
                     empty_mask = np.zeros(self.image_size)
                     dataset = DatasetManager([image_pil], [empty_mask], [cat_id])
-                    image_tensor, _, category_tensor = dataset[0]
+                    image_tensor, _ = dataset[0]
                     image_tensor = image_tensor.unsqueeze(0).to(self.device)
-                    category_tensor = category_tensor.unsqueeze(0).to(self.device)
 
                     # prediksi
-                    outputs = model(image_tensor, category_tensor)
+                    outputs = model(image_tensor)
                     mask_pred = outputs.squeeze().cpu().numpy()
+                    mask_pred_class = np.argmax(mask_pred, axis=0)
 
                     title = categories_classes.get(cat_id)
-                    self.plot_manager.plot_predictions(image_orig, orig_size, mask_pred, title)
+                    self.plot_manager.plot_predictions(image_orig, orig_size, mask_pred_class, title)
                     
     def train(self, val_interval=1):
         train_loader, val_loader, test_loader, categories_classes = self.coco_manager.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
