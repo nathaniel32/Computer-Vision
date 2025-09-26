@@ -2,13 +2,14 @@ import numpy as np
 import torch
 import torch.optim as optim
 from utils import logger
-import helper.train
-import helper.predict
 from model import ConditionalSegmentationModel
 import os
 from PIL import Image
 import joblib
 import config
+from helper.plot_manager import PlotManager
+from helper.coco_manager import CocoManager
+from helper.train import DatasetManager, SegmentationLoss
 
 torch.manual_seed(42)
 torch.cuda.manual_seed(42)
@@ -32,6 +33,8 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         self.save_meta_path = os.path.join(config.RES_DIR, "meta.bin")
         self.image_size = (224, 224)
+        self.plot_manager = PlotManager()
+        self.coco_manager = CocoManager()
     
     def predict(self):
         meta_data = joblib.load(self.save_meta_path)
@@ -77,7 +80,7 @@ class Main:
 
                     # prepare data
                     empty_mask = np.zeros(self.image_size)
-                    dataset = helper.train.DatasetManager([image_pil], [empty_mask], [cat_index])
+                    dataset = DatasetManager([image_pil], [empty_mask], [cat_index])
                     image_tensor, _, category_tensor = dataset[0]
                     image_tensor = image_tensor.unsqueeze(0).to(self.device)
                     category_tensor = category_tensor.unsqueeze(0).to(self.device)
@@ -87,10 +90,10 @@ class Main:
                     mask_pred = outputs.squeeze().cpu().numpy()
 
                     title = categories_classes.get(category_decoder[category_tensor.item()])
-                    helper.predict.plot_predictions(image_orig, orig_size, mask_pred, title)
+                    self.plot_manager.plot_predictions(image_orig, orig_size, mask_pred, title)
                     
     def train(self, val_interval=1):
-        train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder = helper.train.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
+        train_loader, val_loader, test_loader, categories_classes, category_encoder, category_decoder = self.coco_manager.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
         
         # save meta
         meta_data = {
@@ -112,7 +115,7 @@ class Main:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
         )
-        criterion = helper.train.SegmentationLoss(
+        criterion = SegmentationLoss(
             alpha=0.25, gamma=2.0, dice_weight=0.7, 
             focal_weight=1.2, smooth=1e-6
         )
@@ -218,7 +221,7 @@ class Main:
                         break
         
         # plot graph
-        helper.train.plot_training_curves(train_losses, val_losses, val_interval)
+        self.plot_manager.plot_training_curves(train_losses, val_losses, val_interval)
 
         # Load best model and evaluate
         logger.info("Loading best model for evaluation...")
@@ -227,7 +230,7 @@ class Main:
         
         # test
         logger.info("Evaluating model and plotting predictions...")
-        category_metrics = helper.train.evaluate_and_plot_predictions(
+        category_metrics = self.plot_manager.evaluate_and_plot_predictions(
             model, test_loader, self.device, categories_classes, category_decoder, num_samples=100
         )
         
