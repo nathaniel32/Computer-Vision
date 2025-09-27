@@ -1,6 +1,6 @@
 import os
 
-DS_ROOT = r"D:\Datasets\fcn_datasets\face_object"
+DS_ROOT = r"D:\Datasets\fcn_datasets\hand"
 RES_DIR = "result"
 LOG_DIR = "result/logs"
 

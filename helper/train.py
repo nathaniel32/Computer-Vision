@@ -133,10 +133,13 @@ class SegmentationLoss(nn.Module):
             
             # Skip if no target pixels for this class
             if target_sum == 0:
+                #print("Empty: ", class_idx) # class yg tidak ada di foto ini
                 if pred_sum == 0:
-                    dice_coeff = 1.0  # Perfect prediction
+                    #dice_coeff = 1.0  # Perfect prediction
+                    dice_coeff = torch.tensor(1.0, device=pred_probs.device)
                 else:
-                    dice_coeff = 0.0  # False positives
+                    #dice_coeff = 0.0  # False positives
+                    dice_coeff = torch.tensor(0.0, device=pred_probs.device)
             else:
                 dice_coeff = (2 * intersection + self.smooth) / (pred_sum + target_sum + self.smooth)
             
