@@ -33,7 +33,7 @@ class Down(nn.Module):
 
 class Up(nn.Module):
     """Upscaling then double conv"""
-    def __init__(self, in_channels: int, out_channels: int, bilinear: bool = True):
+    def __init__(self, in_channels: int, out_channels: int, bilinear: bool = False):
         super(Up, self).__init__()
         
         # if bilinear, use the normal convolutions to reduce the number of channels
@@ -111,32 +111,22 @@ class UNet(nn.Module):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.dim() != 4:
-            raise ValueError(f"Expected 4D input tensor, got {x.dim()}D")
+        # Encoder
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
         
-        try:
-            # Encoder
-            x1 = self.inc(x)
-            x2 = self.down1(x1)
-            x3 = self.down2(x2)
-            x4 = self.down3(x3)
-            x5 = self.down4(x4)
-            
-            # Decoder with skip connections
-            x = self.up1(x5, x4)
-            x = self.up2(x, x3)
-            x = self.up3(x, x2)
-            x = self.up4(x, x1)
-            
-            # Output
-            logits = self.outc(x)
-            
-            return logits
-            
-        except Exception as e:
-            logger.error(f"U-Net forward pass failed: {e}")
-            # Return zeros as fallback
-            batch_size = x.size(0)
-            return torch.zeros(batch_size, self.n_classes, x.size(2), x.size(3), device=x.device, dtype=x.dtype)
+        # Decoder with skip connections
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
+        
+        # Output
+        logits = self.outc(x)
+        
+        return logits
 
 SegmentationModel = UNet
