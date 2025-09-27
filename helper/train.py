@@ -62,16 +62,7 @@ class SegmentationLoss(nn.Module):
         else:
             self.weight = None
     
-    def focal_loss(self, pred, target):
-        """Multi-class Focal Loss"""
-        # pred: [B, C, H, W] - logits
-        # target: [B, H, W] - class indices
-        
-        # Fix target shape if needed
-        if target.dim() == 4 and target.size(1) == 1:
-            target = target.squeeze(1)
-        target = target.long()
-        
+    def focal_loss(self, pred, target):       
         # Convert to probabilities
         pred_probs = F.softmax(pred, dim=1)
         
@@ -104,13 +95,7 @@ class SegmentationLoss(nn.Module):
         
         return focal_loss.mean()
     
-    def dice_loss(self, pred, target):
-        """Multi-class Dice Loss"""
-        # Fix target shape if needed
-        if target.dim() == 4 and target.size(1) == 1:
-            target = target.squeeze(1)
-        target = target.long()
-        
+    def dice_loss(self, pred, target):        
         # Convert logits to probabilities
         pred_probs = F.softmax(pred, dim=1)
         
@@ -148,12 +133,6 @@ class SegmentationLoss(nn.Module):
         return torch.stack(dice_losses).mean()
     
     def tversky_loss(self, pred, target, alpha_t=0.7, beta_t=0.3):
-        """Multi-class Tversky Loss"""
-        # Fix target shape if needed
-        if target.dim() == 4 and target.size(1) == 1:
-            target = target.squeeze(1)
-        target = target.long()
-        
         pred_probs = F.softmax(pred, dim=1)
         target_one_hot = F.one_hot(target, num_classes=self.num_classes).permute(0, 3, 1, 2).float()
         
@@ -173,12 +152,6 @@ class SegmentationLoss(nn.Module):
         return torch.stack(tversky_losses).mean()
     
     def boundary_loss(self, pred, target):
-        """Multi-class Boundary-aware loss"""
-        # Fix target shape if needed
-        if target.dim() == 4 and target.size(1) == 1:
-            target = target.squeeze(1)
-        target = target.long()
-        
         pred_probs = F.softmax(pred, dim=1)
         target_one_hot = F.one_hot(target, num_classes=self.num_classes).permute(0, 3, 1, 2).float()
         
@@ -207,12 +180,6 @@ class SegmentationLoss(nn.Module):
         return F.mse_loss(pred_grad, target_grad)
     
     def lovasz_softmax_loss(self, pred, target):
-        """Lovász-Softmax loss for multi-class segmentation"""
-        # Fix target shape if needed
-        if target.dim() == 4 and target.size(1) == 1:
-            target = target.squeeze(1)
-        target = target.long()
-        
         def lovasz_grad(gt_sorted):
             """Compute gradient of the Lovász extension w.r.t the sorted errors"""
             p = len(gt_sorted)
@@ -254,7 +221,7 @@ class SegmentationLoss(nn.Module):
             target: Ground truth class indices [B, H, W] or [B, 1, H, W]
             loss_type: 'ce', 'focal', 'dice', 'tversky', 'combined', 'boundary_enhanced', 'lovasz'
         """
-        # Fix target shape - remove channel dimension if present
+        
         if target.dim() == 4 and target.size(1) == 1:
             target = target.squeeze(1)  # [B, 1, H, W] -> [B, H, W]
         
