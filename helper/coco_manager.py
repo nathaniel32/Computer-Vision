@@ -1,8 +1,7 @@
 import json
-from collections import defaultdict
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 from utils import logger
 import os
 from torch.utils.data import DataLoader
@@ -36,47 +35,65 @@ class CocoManager:
         except Exception as e:
             logger.error(f"Error loading COCO data: {e}")
             raise
-    
+
+    def transform_image(self, image_pil, target_size, mask=None):
+        # Normalisasi EXIF orientation pada gambar
+        image_pil = ImageOps.exif_transpose(image_pil)  # hapus Orientation setelah diterapkan
+
+        # Tentukan orientasi berdasarkan dimensi gambar pasca-EXIF
+        width, height = image_pil.size
+        rotate90 = (width >= height)  # landscape atau square -> portrait
+
+        if rotate90:
+            # Gambar: 90° CCW
+            image_pil = image_pil.transpose(Image.ROTATE_90)
+            # Mask (jika ada): 90° CCW tanpa interpolasi
+            if mask is not None:
+                mask = np.rot90(mask, k=1)  # CCW, konservasi label
+
+        # Resize
+        image_pil = image_pil.resize(target_size)
+        if mask is not None:
+            mask = cv2.resize(mask, target_size, interpolation=cv2.INTER_NEAREST)  # jaga nilai kelas
+
+        return image_pil, mask, rotate90
+
     def _create_dataset(self, coco_data, dir_root, dir_name, target_size):
         images_data = []
         labels_data = []
         failed_loads = 0
 
-        # Buat lookup supaya gak O(n*m)
+        # Lookup annotation per image
         ann_by_image = {}
         for ann in coco_data['annotations']:
             ann_by_image.setdefault(ann['image_id'], []).append(ann)
 
         for image_data in coco_data['images']:
-            img_id = image_data['id']
             file_name = image_data['file_name']
             img_path = os.path.join(dir_root, dir_name, file_name)
 
-            try:
-                image_pil = Image.open(img_path).convert('RGB')
-            except Exception as e:
-                logger.warning(f"Failed to load {img_path}: {e}")
-                failed_loads += 1
-                continue
-
-            if image_pil.size[0] == 0 or image_pil.size[1] == 0:
-                logger.warning(f"Invalid image dimensions: {img_path}")
-                failed_loads += 1
-                continue
-
-            image_pil = image_pil.resize(target_size)
-
-            # Mask asli
+            # Bangun mask pada resolusi asli COCO
             mask = np.zeros((image_data['height'], image_data['width']), dtype=np.uint8)
 
-            for annotation in ann_by_image.get(img_id, []):
+            for annotation in ann_by_image.get(image_data['id'], []):
                 category_index = annotation['category_id']
                 for poly in annotation['segmentation']:
                     poly = np.array(poly).reshape((-1, 2)).astype(np.int32)
                     cv2.fillPoly(mask, [poly], color=category_index)
 
-            # Resize mask ke ukuran target
-            mask = cv2.resize(mask, target_size, interpolation=cv2.INTER_NEAREST)
+            try:
+                image_pil = Image.open(img_path).convert('RGB')
+            except Exception as e:
+                logger.warning(f"Load error: {img_path}: {e}")  # fail-fast
+                failed_loads += 1
+                continue
+
+            if image_pil.size[0] == 0 or image_pil.size[1] == 0:
+                logger.warning(f"Invalid image dimensions: {img_path}")  # fail-fast
+                failed_loads += 1
+                continue
+            
+            image_pil, mask, rotate90 = self.transform_image(image_pil, target_size, mask=mask)
 
             images_data.append(image_pil)
             labels_data.append(mask)

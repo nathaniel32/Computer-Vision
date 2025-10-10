@@ -171,11 +171,18 @@ class PlotManager:
                 logger.info(f"    Average IoU: {total_iou_per_class[c]/total_samples:.3f}")
                 logger.info(f"    Average Dice: {total_dice_per_class[c]/total_samples:.3f}")
 
-    def plot_predictions(self, image_orig, orig_size, mask_pred, title):
-        # resize mask ke ukuran asli
-        mask_resized = cv2.resize(mask_pred, orig_size, interpolation=cv2.INTER_NEAREST)
+    def plot_predictions(self, image_orig, mask_pred, title, rotate90):
+        # image_orig.size adalah (width, height)
+        ow, oh = image_orig.size
 
-        # plot
+        # Jika sebelumnya diputar 90° CCW, kembalikan 90° CW
+        if rotate90:
+            mask_pred = np.rot90(mask_pred, k=3)  # undo 90° CCW -> 90° CW
+
+        # Resize mask ke ukuran asli (cv2: dsize=(width, height))
+        mask_resized = cv2.resize(mask_pred, (ow, oh), interpolation=cv2.INTER_NEAREST)  # jaga label
+
+        # Plot overlay
         plt.figure(figsize=(8,8))
         plt.imshow(image_orig)
         plt.imshow(mask_resized, alpha=0.5)

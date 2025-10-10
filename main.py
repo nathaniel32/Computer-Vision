@@ -31,7 +31,7 @@ class Main:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         self.save_meta_path = os.path.join(config.RES_DIR, "meta.bin")
-        self.image_size = (224, 224)
+        self.image_size = config.IMAGE_SIZE
         self.plot_manager = PlotManager()
         self.coco_manager = CocoManager()
     
@@ -68,10 +68,8 @@ class Main:
 
                     # load gambar asli
                     image_orig = Image.open(img_path).convert('RGB')
-                    orig_size = image_orig.size  # (width, height)
 
-                    # resize untuk model
-                    image_pil = image_orig.resize(self.image_size)
+                    image_pil, mask, rotate90 = self.coco_manager.transform_image(image_orig, self.image_size)
 
                     # prepare data
                     empty_mask = np.zeros(self.image_size)
@@ -85,7 +83,7 @@ class Main:
                     mask_pred_class = np.argmax(mask_pred, axis=0)
 
                     title = categories_classes.get(cat_id)
-                    self.plot_manager.plot_predictions(image_orig, orig_size, mask_pred_class, title)
+                    self.plot_manager.plot_predictions(image_orig, mask_pred_class, title, rotate90)
                     
     def train(self, val_interval=1):
         train_loader, val_loader, test_loader, categories_classes = self.coco_manager.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)
