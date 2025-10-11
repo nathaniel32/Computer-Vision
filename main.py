@@ -49,23 +49,13 @@ class Main:
 
         with torch.no_grad():
             while True:
-                img_path = input("Img Path: ").strip('"').strip()
-                if not img_path:
+                dir_path = input("\nDir Path: ").strip('"').strip()
+                if not dir_path:
                     break
 
-                while True:
-                    logger.info("\nID\tCategory")
-                    for key, value in categories_classes.items():
-                        logger.info(f"{key}\t {value}")
-
-                    cat_id = input("\nCategory ID: ")
-                    if not cat_id:
-                        break
+                for filename in os.listdir(dir_path):
+                    img_path = os.path.join(dir_path, filename)
                     
-                    cat_id = int(cat_id)
-
-                    logger.info("Category Index:", cat_id)
-
                     # load gambar asli
                     image_orig = Image.open(img_path).convert('RGB')
 
@@ -73,7 +63,7 @@ class Main:
 
                     # prepare data
                     empty_mask = np.zeros(self.image_size)
-                    dataset = DatasetManager([image_pil], [empty_mask], [cat_id])
+                    dataset = DatasetManager([image_pil], [empty_mask])
                     image_tensor, _ = dataset[0]
                     image_tensor = image_tensor.unsqueeze(0).to(self.device)
 
@@ -82,8 +72,7 @@ class Main:
                     mask_pred = outputs.squeeze().cpu().numpy()
                     mask_pred_class = np.argmax(mask_pred, axis=0)
 
-                    title = categories_classes.get(cat_id)
-                    self.plot_manager.plot_predictions(image_orig, mask_pred_class, title, rotate90)
+                    self.plot_manager.plot_predictions(image_orig, mask_pred_class, img_path, rotate90)
                     
     def train(self, val_interval=1):
         train_loader, val_loader, test_loader, categories_classes = self.coco_manager.prepare_datasets(self.batch_size, self.ds_root, self.image_size, self.log_dir)

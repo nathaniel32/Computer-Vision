@@ -171,7 +171,7 @@ class PlotManager:
                 logger.info(f"    Average IoU: {total_iou_per_class[c]/total_samples:.3f}")
                 logger.info(f"    Average Dice: {total_dice_per_class[c]/total_samples:.3f}")
 
-    def plot_predictions(self, image_orig, mask_pred, title, rotate90):
+    """ def plot_predictions(self, image_orig, mask_pred, title, rotate90):
         # image_orig.size adalah (width, height)
         ow, oh = image_orig.size
 
@@ -188,4 +188,34 @@ class PlotManager:
         plt.imshow(mask_resized, alpha=0.5)
         plt.title(title, fontsize=10)
         plt.axis('off')
-        plt.show()
+        plt.show() """
+    
+    def plot_predictions(self, image_orig, mask_pred, img_path, rotate90):
+        ow, oh = image_orig.size
+        if rotate90:
+            mask_pred = np.rot90(mask_pred, k=3)
+
+        mask_resized = cv2.resize(mask_pred, (ow, oh), interpolation=cv2.INTER_NEAREST)
+        image_np = np.array(image_orig)
+
+        if len(mask_resized.shape) == 2:
+            mask_resized = np.expand_dims(mask_resized, axis=-1)
+
+        image_masked = image_np.copy()
+        image_masked[mask_resized.squeeze() == 0] = [0, 0, 0]
+
+        #plt.figure(figsize=(8,8))
+        #plt.imshow(image_masked)
+        #plt.title("Pred", fontsize=10)
+        #plt.axis('off')
+        #plt.show()
+        #plt.close()
+
+        # Membuat subfolder 'masked' di folder yang sama
+        dir_name = os.path.dirname(img_path)
+        base_name = os.path.basename(img_path)
+        masked_dir = os.path.join(dir_name, "masked")
+        os.makedirs(masked_dir, exist_ok=True)
+
+        save_path = os.path.join(masked_dir, base_name)
+        cv2.imwrite(save_path, cv2.cvtColor(image_masked, cv2.COLOR_RGB2BGR))
