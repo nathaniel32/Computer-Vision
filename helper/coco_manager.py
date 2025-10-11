@@ -145,7 +145,7 @@ class CocoManager:
             json.dump(coco_data_test, f, indent=4)
         
         # Plot sample data
-        self.plot_manager.plot_data_samples(X_train, Y_train, num_samples=3)
+        self.plot_manager.plot_data_samples(X_train, Y_train, num_samples=10)
 
         train_dataset = DatasetManager(X_train, Y_train, augment=True)
         val_dataset = DatasetManager(X_valid, Y_valid, augment=False)
