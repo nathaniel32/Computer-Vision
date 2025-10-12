@@ -202,7 +202,7 @@ class PlotManager:
             mask_resized = np.expand_dims(mask_resized, axis=-1)
 
         image_masked = image_np.copy()
-        image_masked[mask_resized.squeeze() == 0] = [128, 128, 128]
+        image_masked[mask_resized.squeeze() == 0] = [0, 0, 0]
 
         #plt.figure(figsize=(8,8))
         #plt.imshow(image_masked)
