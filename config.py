@@ -8,6 +8,6 @@ CLASSES = [
     {"label": "hand", "color": "#00FF00"}
 ]
 
-EPOCHS = 10
+EPOCHS = 100
 BATCH_SIZE = 3
 LR = 1e-3

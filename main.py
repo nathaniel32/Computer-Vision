@@ -93,10 +93,11 @@ class Main:
                 color = color.unsqueeze(0).to(self.device)
                 outputs = model(point, color)
                 
-                pc_plot = point.squeeze(0).transpose(0, 1).cpu().numpy()
+                point_plot = point.squeeze(0).transpose(0, 1).cpu().numpy()
+                color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_test_prediction(pc_plot, label, pred_label)
+                plot_test_prediction(point_plot, color_plot, label, pred_label)
 
     def train(self, val_interval=1):
         TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
