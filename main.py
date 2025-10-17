@@ -31,10 +31,10 @@ class Main:
         correct = 0
         total = 0
         
-        for points, rgbs, labels in loader:
-            points, rgbs, labels = points.to(self.device), rgbs.to(self.device), labels.to(self.device)
+        for points, colors, labels in loader:
+            points, colors, labels = points.to(self.device), colors.to(self.device), labels.to(self.device)
             optimizer.zero_grad()
-            outputs = model(points, rgbs)
+            outputs = model(points, colors)
             
             # Reshape for loss calculation
             outputs_flat = outputs.reshape(-1, outputs.shape[-1])
@@ -62,9 +62,9 @@ class Main:
         total = 0
         
         with torch.no_grad():
-            for points, rgbs, labels in loader:
-                points, rgbs, labels = points.to(self.device), rgbs.to(self.device), labels.to(self.device)
-                outputs = model(points, rgbs)
+            for points, colors, labels in loader:
+                points, colors, labels = points.to(self.device), colors.to(self.device), labels.to(self.device)
+                outputs = model(points, colors)
                 
                 # Reshape for loss calculation
                 outputs_flat = outputs.reshape(-1, outputs.shape[-1])
@@ -88,10 +88,10 @@ class Main:
 
         model.eval()
         with torch.no_grad():
-            for (point, rgb, label) in test_dataset:
+            for (point, color, label) in test_dataset:
                 point = point.unsqueeze(0).to(self.device)
-                rgb = rgb.unsqueeze(0).to(self.device)
-                outputs = model(point, rgb)
+                color = color.unsqueeze(0).to(self.device)
+                outputs = model(point, color)
                 
                 pc_plot = point.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
@@ -103,16 +103,16 @@ class Main:
         VAL_DIR = os.path.join(config.DS_ROOT, "val")
         TEST_DIR = os.path.join(config.DS_ROOT, "test")
 
-        train_point_clouds, train_rgb, train_labels = load_pcd_with_point_labels(TRAIN_DIR, augment=True)
-        val_point_clouds, val_rgb, val_labels = load_pcd_with_point_labels(VAL_DIR)
-        test_point_clouds, test_rgb, test_labels = load_pcd_with_point_labels(TEST_DIR)
+        train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR, augment=True)
+        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR)
+        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR)
         
         logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         logger.info(f"Validation samples: {len(val_point_clouds)}")
 
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_rgb, train_labels,augment=True)
-        val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_rgb, val_labels, augment=False)
-        test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_rgb, test_labels, augment=False)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, train_labels,augment=True)
+        val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, val_labels, augment=False)
+        test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, test_labels, augment=False)
 
         train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=0)
         val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=0)
