@@ -44,29 +44,36 @@ class TNet(nn.Module):
 
 
 class PointNetSegmentation(nn.Module):
-    """PointNet for Part Segmentation"""
+    """PointNet for Part Segmentation with RGB"""
     def __init__(self, num_classes):
         super(PointNetSegmentation, self).__init__()
         
         self.num_classes = num_classes
         
-        # Input transform
+        # Input transform (XYZ only - 3 channels)
         self.input_transform = TNet(k=3)
         
-        # First MLP
+        # First MLP - process XYZ
         self.conv1 = nn.Conv1d(3, 64, 1)
         self.conv2 = nn.Conv1d(64, 64, 1)
         self.bn1 = nn.BatchNorm1d(64)
         self.bn2 = nn.BatchNorm1d(64)
         
-        # Feature transform
-        self.feature_transform = TNet(k=64)
+        # RGB processing branch - parallel to XYZ
+        self.rgb_conv1 = nn.Conv1d(3, 64, 1)
+        self.rgb_conv2 = nn.Conv1d(64, 64, 1)
+        self.rgb_bn1 = nn.BatchNorm1d(64)
+        self.rgb_bn2 = nn.BatchNorm1d(64)
         
-        # Second MLP
-        self.conv3 = nn.Conv1d(64, 64, 1)
-        self.conv4 = nn.Conv1d(64, 128, 1)
+        # Feature transform (128 channels - combined XYZ + RGB features)
+        self.feature_transform = TNet(k=128)
+        
+        # Second MLP - process concatenated XYZ + RGB features
+        # Input: 64 (XYZ) + 64 (RGB) = 128
+        self.conv3 = nn.Conv1d(128, 128, 1)
+        self.conv4 = nn.Conv1d(128, 128, 1)
         self.conv5 = nn.Conv1d(128, 1024, 1)
-        self.bn3 = nn.BatchNorm1d(64)
+        self.bn3 = nn.BatchNorm1d(128)
         self.bn4 = nn.BatchNorm1d(128)
         self.bn5 = nn.BatchNorm1d(1024)
         
@@ -83,22 +90,34 @@ class PointNetSegmentation(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
         
     def forward(self, x):
+        # x shape: (B, 6, N) - XYZ + RGB
         num_points = x.size(2)
         
-        # Input transform
-        input_trans = self.input_transform(x)
-        x = torch.bmm(x.transpose(2, 1), input_trans).transpose(2, 1)
+        # Separate XYZ and RGB
+        xyz = x[:, :3, :]  # (B, 3, N)
+        rgb = x[:, 3:, :]  # (B, 3, N)
         
-        # First MLP
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
+        # Input transform (only on XYZ)
+        input_trans = self.input_transform(xyz)
+        xyz_transformed = torch.bmm(xyz.transpose(2, 1), input_trans).transpose(2, 1)
         
-        # Feature transform
-        feature_trans = self.feature_transform(x)
-        x = torch.bmm(x.transpose(2, 1), feature_trans).transpose(2, 1)
+        # First MLP - XYZ branch
+        xyz_feat = F.relu(self.bn1(self.conv1(xyz_transformed)))
+        xyz_feat = F.relu(self.bn2(self.conv2(xyz_feat)))
+        
+        # RGB branch (parallel processing)
+        rgb_feat = F.relu(self.rgb_bn1(self.rgb_conv1(rgb)))
+        rgb_feat = F.relu(self.rgb_bn2(self.rgb_conv2(rgb_feat)))
+        
+        # Concatenate XYZ and RGB features
+        combined_feat = torch.cat([xyz_feat, rgb_feat], dim=1)  # (B, 128, N)
+        
+        # Feature transform (on combined features)
+        feature_trans = self.feature_transform(combined_feat)
+        combined_feat = torch.bmm(combined_feat.transpose(2, 1), feature_trans).transpose(2, 1)
         
         # Second MLP
-        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn3(self.conv3(combined_feat)))
         local_features = F.relu(self.bn4(self.conv4(x)))
         x = F.relu(self.bn5(self.conv5(local_features)))
         
@@ -118,7 +137,6 @@ class PointNetSegmentation(nn.Module):
         
         # Transpose to (batch, points, classes)
         x = x.transpose(2, 1).contiguous()
-        #x = F.log_softmax(x, dim=-1)
         
         return x
 
@@ -126,7 +144,8 @@ class PointNetSegmentation(nn.Module):
 """ class PointNetSegmentation(nn.Module):
     def __init__(self, num_classes=2):
         super(PointNetSegmentation, self).__init__()
-        self.conv1 = nn.Conv1d(3, 64, 1)
+        # Input: 6 channels (3 XYZ + 3 RGB)
+        self.conv1 = nn.Conv1d(6, 64, 1)
         self.conv2 = nn.Conv1d(64, 128, 1)
         self.conv3 = nn.Conv1d(128, 256, 1)
         self.conv4 = nn.Conv1d(256, 128, 1)
@@ -134,13 +153,12 @@ class PointNetSegmentation(nn.Module):
         self.dropout = nn.Dropout(0.3)
 
     def forward(self, x):
-        # (B, 3, N)
+        # (B, 6, N) - XYZ + RGB
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
         x = F.relu(self.conv4(x))
         x = self.dropout(x)
         x = self.conv5(x)
-        x = x.transpose(2, 1).contiguous()  # (B, 3, N) -> (B, N, 3)
-        #x = F.log_softmax(x, dim=-1)
+        x = x.transpose(2, 1).contiguous()  # (B, num_classes, N) -> (B, N, num_classes)
         return x """
