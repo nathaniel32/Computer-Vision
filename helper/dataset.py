@@ -195,14 +195,14 @@ def load_pcd_with_point_labels(directory, augment=False, num_augmentations=2):
             continue
     
     print(f"Total samples (with augmentation): {len(point_clouds)}")
-    return point_clouds, label_clouds, rgb_clouds
+    return point_clouds, rgb_clouds, label_clouds
 
 
 class PointCloudSegmentationDataset(Dataset):
-    def __init__(self, point_clouds, labels, rgb_data=None, augment=False):
+    def __init__(self, point_clouds, rgb_data, labels, augment=False):
         self.point_clouds = point_clouds
-        self.labels = labels
         self.rgb_data = rgb_data
+        self.labels = labels
         self.augment = augment
 
     def __len__(self):
@@ -210,17 +210,11 @@ class PointCloudSegmentationDataset(Dataset):
 
     def __getitem__(self, idx):
         points = torch.FloatTensor(self.point_clouds[idx])
+        rgb = torch.FloatTensor(self.rgb_data[idx])
         labels = torch.LongTensor(self.labels[idx])
         
         # Transpose points: (N, 3) -> (3, N)
         points = points.transpose(0, 1)
-        
-        if self.rgb_data is not None:
-            rgb = torch.FloatTensor(self.rgb_data[idx])
-            # Transpose RGB: (N, 3) -> (3, N)
-            rgb = rgb.transpose(0, 1)
-            # Combine points dan RGB: (6, N)
-            points_with_rgb = torch.cat([points, rgb], dim=0)
-            return points_with_rgb, labels
-        else:
-            return points, labels
+        rgb = rgb.transpose(0, 1)
+
+        return points, rgb, labels

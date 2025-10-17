@@ -89,13 +89,10 @@ class PointNetSegmentation(nn.Module):
         
         self.dropout = nn.Dropout(p=0.5)
         
-    def forward(self, x):
-        # x shape: (B, 6, N) - XYZ + RGB
-        num_points = x.size(2)
-        
-        # Separate XYZ and RGB
-        xyz = x[:, :3, :]  # (B, 3, N)
-        rgb = x[:, 3:, :]  # (B, 3, N)
+    def forward(self, xyz, rgb):
+        # xyz shape: (B, 3, N)
+        # rgb shape: (B, 3, N)
+        num_points = xyz.size(2)
         
         # Input transform (only on XYZ)
         input_trans = self.input_transform(xyz)
@@ -152,8 +149,12 @@ class PointNetSegmentation(nn.Module):
         self.conv5 = nn.Conv1d(128, num_classes, 1)
         self.dropout = nn.Dropout(0.3)
 
-    def forward(self, x):
-        # (B, 6, N) - XYZ + RGB
+    def forward(self, xyz, rgb):
+        # xyz: (B, 3, N)
+        # rgb: (B, 3, N)
+        # Concatenate on channel dimension
+        x = torch.cat([xyz, rgb], dim=1)  # (B, 6, N)
+        
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
