@@ -127,8 +127,10 @@ class Main:
         #"""
         criterion = FocalLoss() #nn.NLLLoss()
         optimizer = optim.Adam(model.parameters(), lr=config.LR)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+        #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
         
+        patience_counter = 0
         best_val_acc = 0.0
         train_losses, val_losses, train_accuracies, val_accuracies = [], [], [], []
         for epoch in range(config.EPOCHS):
@@ -157,8 +159,16 @@ class Main:
                     'num_classes': num_classes
                 }, self.save_model_path)
                 logger.info(f'Saved best model with validation accuracy: {val_acc:.2f}%')
+            else:
+                patience_counter += 1
+                logger.info(f"- Patience: {patience_counter}/{config.PATIENCE}")
+
+                if patience_counter >= config.PATIENCE:
+                    logger.info("= Early stopping triggered!")
+                    break
             
-            scheduler.step()
+            #scheduler.step()
+            scheduler.step(val_loss)
 
         logger.info(f"\n=== Training Complete ===")
         logger.info(f"Best Validation Accuracy: {best_val_acc:.2f}%")
