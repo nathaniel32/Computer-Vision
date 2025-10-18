@@ -176,3 +176,35 @@ def visualize_pointcloud(points, colors_rgb):
         o3d.visualization.draw_geometries([pcd], window_name="Point Cloud", width=1000, height=800)
     except ImportError:
         print("Open3D not installed, skipping visualization")
+
+import trimesh
+import numpy as np
+from scipy.spatial import cKDTree
+
+def remove_object_part(points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id):
+    # remove mesh where pred label == "remove_item_id"
+    # --- Load mesh
+    mesh = trimesh.load(mesh_file_path, process=False)
+
+    # --- Ambil points yang bukan label "remove_item_id"
+    points_to_remove = points[pred_label == remove_item_id]
+
+    # --- Buat KDTree untuk filter vertex
+    if len(points_to_remove) > 0:
+        kdtree = cKDTree(points_to_remove)
+        distances, _ = kdtree.query(mesh.vertices, k=1)
+        mask_keep = distances > 0.01  # threshold jarak (sesuaikan sesuai scale)
+    else:
+        # Jika tidak ada label 0, keep semua vertices
+        mask_keep = np.ones(len(mesh.vertices), dtype=bool)
+
+    # --- Hapus faces yang memiliki vertex dengan label "remove_item_id"
+    faces_keep = mask_keep[mesh.faces].all(axis=1)
+    mesh.update_faces(faces_keep)
+    mesh.remove_unreferenced_vertices()
+
+    # --- Simpan mesh (catatan: UV mapping mungkin tidak terjaga)
+    mesh.export(save_obj_trim_path)
+    
+    print(f"Mesh trimmed saved to: {save_obj_trim_path}")
+    print(f"Original faces: {len(mesh.faces)} -> Remaining faces: {faces_keep.sum()}")
