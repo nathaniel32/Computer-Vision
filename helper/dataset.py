@@ -11,88 +11,89 @@ from scipy.spatial.transform import Rotation as R
 class PointCloudAugmenter:
     def __init__(self, p_aug=0.7):
         self.p_aug = p_aug
-    
-    def random_rotation(self, points, labels, colors=None, axis=None):
+
+    def random_rotation(self, points, colors, labels, axis=None):
         """Rotasi random 3D"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         if axis is None:
             angles = np.random.uniform(0, 2*np.pi, 3)
             rotation = R.from_euler('xyz', angles)
         else:
             angle = np.random.uniform(0, 2*np.pi)
             rotation = R.from_euler(axis, angle)
-        
+
         rotated_points = rotation.apply(points)
-        return rotated_points, labels, colors
-    
-    def random_scaling(self, points, labels, colors=None, scale_range=(0.8, 1.2)):
+        return rotated_points, colors, labels
+
+    def random_scaling(self, points, colors, labels, scale_range=(0.8, 1.2)):
         """Scaling random isotropic"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         scale = np.random.uniform(scale_range[0], scale_range[1])
         scaled_points = points * scale
-        return scaled_points, labels, colors
-    
-    def random_jitter(self, points, labels, colors=None, sigma=0.01, clip=0.05):
+        return scaled_points, colors, labels
+
+    def random_jitter(self, points, colors, labels, sigma=0.01, clip=0.05):
         """Tambah noise Gaussian kecil"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         noise = np.random.normal(0, sigma, points.shape)
         noise = np.clip(noise, -clip, clip)
         jittered_points = points + noise
-        return jittered_points, labels, colors
-    
-    def random_dropout(self, points, labels, colors=None, dropout_rate=0.2):
+        return jittered_points, colors, labels
+
+    def random_dropout(self, points, colors, labels, dropout_rate=0.2):
         """Hapus point random (occlusion simulation)"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         num_points = len(points)
         num_drop = int(num_points * dropout_rate)
         keep_idx = np.random.choice(num_points, num_points - num_drop, replace=False)
-        
+
         dropped_points = points[keep_idx]
+        dropped_colors = colors[keep_idx]
         dropped_labels = labels[keep_idx]
-        dropped_colors = colors[keep_idx] if colors is not None else None
-        
-        return dropped_points, dropped_labels, dropped_colors
-    
-    def random_translation(self, points, labels, colors=None, trans_range=0.2):
+
+        return dropped_points, dropped_colors, dropped_labels
+
+    def random_translation(self, points, colors, labels, trans_range=0.2):
         """Translasi random"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         translation = np.random.uniform(-trans_range, trans_range, 3)
         translated_points = points + translation
-        return translated_points, labels, colors
-    
-    def random_axis_rotation(self, points, labels, colors=None):
+        return translated_points, colors, labels
+
+    def random_axis_rotation(self, points, colors, labels):
         """Rotasi hanya pada satu axis"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         axis = np.random.choice(['x', 'y', 'z'])
         angle = np.random.uniform(0, 2*np.pi)
         rotation = R.from_euler(axis, angle)
-        
+
         rotated_points = rotation.apply(points)
-        return rotated_points, labels, colors
-    
-    def random_flip(self, points, labels, colors=None, axes=[0, 1, 2]):
+        return rotated_points, colors, labels
+
+    def random_flip(self, points, colors, labels, axes=[0, 1, 2]):
         """Flip random pada sumbu tertentu"""
         if np.random.random() > self.p_aug:
-            return points, labels, colors
-        
+            return points, colors, labels
+
         axis = np.random.choice(axes)
         flipped_points = points.copy()
         flipped_points[:, axis] *= -1
-        return flipped_points, labels, colors
-    
-    def augment(self, points, labels, colors=None, augmentation_list=None):
+        return flipped_points, colors, labels
+
+    def augment(self, points, colors, labels, augmentation_list=None):
+        """Augmentasi point cloud sesuai daftar augmentation"""
         if augmentation_list is None:
             augmentation_list = [
                 ('rotation', {}),
@@ -100,60 +101,65 @@ class PointCloudAugmenter:
                 ('jitter', {'sigma': 0.01}),
                 ('translation', {'trans_range': 0.1}),
             ]
-        
+
         aug_points = points.copy()
+        aug_colors = colors.copy()
         aug_labels = labels.copy()
-        aug_colors = colors.copy() if colors is not None else None
-        
+
         for aug_name, aug_params in augmentation_list:
             if aug_name == 'rotation':
-                aug_points, aug_labels, aug_colors = self.random_rotation(
-                    aug_points, aug_labels, aug_colors, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_rotation(
+                    aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'axis_rotation':
-                aug_points, aug_labels, aug_colors = self.random_axis_rotation(
-                    aug_points, aug_labels, aug_colors)
+                aug_points, aug_colors, aug_labels = self.random_axis_rotation(
+                    aug_points, aug_colors, aug_labels)
             elif aug_name == 'scaling':
-                aug_points, aug_labels, aug_colors = self.random_scaling(
-                    aug_points, aug_labels, aug_colors, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_scaling(
+                    aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'jitter':
-                aug_points, aug_labels, aug_colors = self.random_jitter(
-                    aug_points, aug_labels, aug_colors, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_jitter(
+                    aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'dropout':
-                aug_points, aug_labels, aug_colors = self.random_dropout(
-                    aug_points, aug_labels, aug_colors, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_dropout(
+                    aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'translation':
-                aug_points, aug_labels, aug_colors = self.random_translation(
-                    aug_points, aug_labels, aug_colors, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_translation(
+                    aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'flip':
-                aug_points, aug_labels, aug_colors = self.random_flip(
-                    aug_points, aug_labels, aug_colors, **aug_params)
-        
-        return aug_points, aug_labels, aug_colors
+                aug_points, aug_colors, aug_labels = self.random_flip(
+                    aug_points, aug_colors, aug_labels, **aug_params)
 
-""" def transform_data(xyz, rgb_raw, labels=None):
-    # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
-    rgb = np.zeros((len(rgb_raw), 3), dtype=np.float32)
-    rgb[:, 0] = ((rgb_raw >> 16) & 0xFF) / 255.0  # R
-    rgb[:, 1] = ((rgb_raw >> 8) & 0xFF) / 255.0   # G
-    rgb[:, 2] = (rgb_raw & 0xFF) / 255.0          # B
-    
+        return aug_points, aug_colors, aug_labels
+
+def sample_points(xyz, rgb_raw, labels=None):
     if len(xyz) < config.NUM_SAMPLE_POINTS:
-        return None, None, None
+        raise ValueError(f"Jumlah titik ({len(xyz)}) lebih sedikit daripada NUM_SAMPLE_POINTS ({config.NUM_SAMPLE_POINTS})")
     
-    # Sampling & normalisasi
     idx = np.random.choice(len(xyz), config.NUM_SAMPLE_POINTS, replace=False)
     sampled_points = xyz[idx]
-    sampled_points -= np.mean(sampled_points, axis=0)
-    sampled_points /= np.max(np.linalg.norm(sampled_points, axis=1))
-    sampled_colors = rgb[idx]
+    sampled_colors = rgb_raw[idx]
 
     if labels is None:
         return sampled_points, sampled_colors
     else:
         sampled_labels = labels[idx]
-        return sampled_points, sampled_colors, sampled_labels """
+        return sampled_points, sampled_colors, sampled_labels
 
-def transform_data(xyz, rgb_raw, labels=None):
+def transform_data(points, rgb_raw):
+    # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
+    colors = np.zeros((len(rgb_raw), 3), dtype=np.float32)
+    colors[:, 0] = ((rgb_raw >> 16) & 0xFF) / 255.0  # R
+    colors[:, 1] = ((rgb_raw >> 8) & 0xFF) / 255.0   # G
+    colors[:, 2] = (rgb_raw & 0xFF) / 255.0          # B
+
+    # Normalisasi point cloud
+    norm_points = points.copy()
+    norm_points -= np.mean(norm_points, axis=0)
+    norm_points /= np.max(np.linalg.norm(norm_points, axis=1))
+
+    return norm_points, colors
+
+""" def transform_data(xyz, rgb_raw, labels=None):
     # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
     rgb = np.zeros((len(rgb_raw), 3), dtype=np.float32)
     rgb[:, 0] = ((rgb_raw >> 16) & 0xFF) / 255.0  # R
@@ -172,7 +178,7 @@ def transform_data(xyz, rgb_raw, labels=None):
         return sampled_points, sampled_colors
     else:
         sampled_labels = labels
-        return sampled_points, sampled_colors, sampled_labels
+        return sampled_points, sampled_colors, sampled_labels """
 
 def load_pcd_with_point_labels(directory, augment=False, num_augmentations=2):
     augmenter = PointCloudAugmenter(p_aug=0.8)
@@ -198,27 +204,25 @@ def load_pcd_with_point_labels(directory, augment=False, num_augmentations=2):
         xyz = data[:, :3]
         rgb_raw = data[:, 3].astype(np.uint32)
         labels = data[:, 4].astype(int)
-        
-        sampled_points, sampled_colors, sampled_labels = transform_data(xyz, rgb_raw, labels=labels)
 
-        if sampled_points is None or sampled_colors is None or sampled_labels is None:
-            print(f"Data Error!")
-            continue
-        
+        sampled_points, sampled_colors, sampled_labels = sample_points(xyz, rgb_raw, labels=labels)
+
+        norm_points, norm_colors = transform_data(sampled_points, sampled_colors)
+                
         # Original sample
-        point_clouds.append(sampled_points)
+        point_clouds.append(norm_points)
+        color_clouds.append(norm_colors)
         label_clouds.append(sampled_labels)
-        color_clouds.append(sampled_colors)
         
         # Augmented samples
         if augment:
             for _ in range(num_augmentations):
-                aug_points, aug_labels, aug_colors = augmenter.augment(
-                    sampled_points, sampled_labels, sampled_colors
+                aug_points, aug_colors, aug_labels = augmenter.augment(
+                    norm_points, norm_colors, sampled_labels
                 )
                 point_clouds.append(aug_points)
-                label_clouds.append(aug_labels)
                 color_clouds.append(aug_colors)
+                label_clouds.append(aug_labels)
     
     print(f"Total samples (with augmentation): {len(point_clouds)}")
     return point_clouds, color_clouds, label_clouds

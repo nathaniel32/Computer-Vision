@@ -138,7 +138,7 @@ class PointNetSegmentation(nn.Module):
         return x
 
 # demo
-""" class PointNetSegmentation(nn.Module):
+class PointNetSegmentation(nn.Module):
     def __init__(self, num_classes=2):
         super(PointNetSegmentation, self).__init__()
         # Input: 6 channels (3 XYZ + 3 RGB)
@@ -162,4 +162,4 @@ class PointNetSegmentation(nn.Module):
         x = self.dropout(x)
         x = self.conv5(x)
         x = x.transpose(2, 1).contiguous()  # (B, num_classes, N) -> (B, N, num_classes)
-        return x """
+        return x

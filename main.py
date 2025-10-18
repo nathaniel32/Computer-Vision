@@ -4,7 +4,7 @@ import torch.nn as nn
 import os
 import config
 from helper.log import logger
-from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_data
+from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_data, sample_points
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_prediction
@@ -35,9 +35,11 @@ class Main:
         # Visualize
         #helper.preds.visualize_pointcloud(points, colors_rgb)
 
-        sampled_points, sampled_colors = transform_data(points, rgb_ints)
+        sampled_points, sampled_colors = sample_points(points, rgb_ints)
 
-        pred_dataset = PointCloudSegmentationDataset([sampled_points], [sampled_colors])
+        norm_points, norm_colors = transform_data(sampled_points, sampled_colors)
+
+        pred_dataset = PointCloudSegmentationDataset([norm_points], [norm_colors])
 
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
@@ -59,9 +61,9 @@ class Main:
                 #plot_prediction(point_plot, color_plot, pred_label, plot_tool="open3d")
                 
                 remove_item_id = 0
-                helper.preds.remove_object_part(points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id)
-                plot_prediction(points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label[pred_label == remove_item_id], plot_tool="open3d")
-                plot_prediction(points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label[pred_label != remove_item_id], plot_tool="open3d")
+                helper.preds.remove_object_part(sampled_points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id)
+                plot_prediction(sampled_points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label[pred_label == remove_item_id], plot_tool="open3d")
+                plot_prediction(sampled_points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label[pred_label != remove_item_id], plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()
@@ -150,7 +152,6 @@ class Main:
 
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR, augment=True)
         val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR)
-        
         
         logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         logger.info(f"Validation samples: {len(val_point_clouds)}")
