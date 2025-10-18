@@ -220,7 +220,7 @@ class Main:
         plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies)
         #"""
         
-        self.test()
+        #self.test()
 
     def main(self):
         while True:
