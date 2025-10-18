@@ -4,11 +4,12 @@ import torch.nn as nn
 import os
 import config
 from helper.log import logger
-from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset
+from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_data
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
-from helper.plot import plot_training_stats, plot_test_prediction
+from helper.plot import plot_training_stats, plot_prediction
 from helper.loss import FocalLoss
+import helper.preds
 
 torch.manual_seed(42)
 torch.cuda.manual_seed(42)
@@ -22,8 +23,39 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         os.makedirs(config.RES_DIR, exist_ok=True)
 
-    def predict(self):
-        pass
+    def predict_object(self):
+        mesh_file_path = r"C:\Users\natha\Downloads\test_preds\texturedMesh.obj"
+        texture_file_path = r"C:\Users\natha\Downloads\test_preds\texture_1001.png"
+        save_pcd_path = r"C:\Users\natha\Downloads\test_preds\point_cloud.pcd"
+
+        # obj to point cloud
+        points, rgb_ints, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=100000)
+
+        # Visualize
+        #helper.preds.visualize_pointcloud(points, colors_rgb)
+
+        sampled_points, sampled_colors = transform_data(points, rgb_ints)
+
+        pred_dataset = PointCloudSegmentationDataset([sampled_points], [sampled_colors])
+
+        num_classes = len(config.CLASSES)
+        model = PointNetSegmentation(num_classes=num_classes).to(self.device)
+
+        checkpoint = torch.load(self.save_model_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+
+        model.eval()
+        with torch.no_grad():
+            for (point, color) in pred_dataset:
+                point = point.unsqueeze(0).to(self.device)
+                color = color.unsqueeze(0).to(self.device)
+                outputs = model(point, color)
+
+                point_plot = point.squeeze(0).transpose(0, 1).cpu().numpy()
+                color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
+                pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
+                
+                plot_prediction(point_plot, color_plot, pred_label, plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()
@@ -82,7 +114,14 @@ class Main:
         accuracy = 100.0 * correct / total
         return avg_loss, accuracy
     
-    def _test(self, model, test_dataset):
+    def test(self):
+        TEST_DIR = os.path.join(config.DS_ROOT, "test")
+        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR)
+        test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
+
+        num_classes = len(config.CLASSES)
+        model = PointNetSegmentation(num_classes=num_classes).to(self.device)
+
         checkpoint = torch.load(self.save_model_path)
         model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -97,23 +136,21 @@ class Main:
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_test_prediction(point_plot, color_plot, label, pred_label)
+                plot_prediction(point_plot, color_plot, pred_label, true_label=label)
 
     def train(self, val_interval=1):
         TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
         VAL_DIR = os.path.join(config.DS_ROOT, "val")
-        TEST_DIR = os.path.join(config.DS_ROOT, "test")
 
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR, augment=True)
         val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR)
-        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR)
+        
         
         logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         logger.info(f"Validation samples: {len(val_point_clouds)}")
 
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, train_labels,augment=True)
-        val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, val_labels, augment=False)
-        test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, test_labels, augment=False)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels)
+        val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=0)
         val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=0)
@@ -150,6 +187,7 @@ class Main:
             
             # Save best model
             if val_acc > best_val_acc:
+                patience_counter = 0
                 best_val_acc = val_acc
                 torch.save({
                     'model_state_dict': model.state_dict(),
@@ -176,13 +214,14 @@ class Main:
         plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies)
         #"""
         
-        self._test(model, test_dataset)
+        self.test()
 
     def main(self):
         while True:
             logger.print("\n=== Menu ===")
-            logger.print("1. Train model")
-            logger.print("2. Predict")
+            logger.print("1. Train Model")
+            logger.print("2. Test Model")
+            logger.print("3. Predict Object")
 
             choice = input("Nr: ").strip()
 
@@ -192,6 +231,8 @@ class Main:
                 logger.clear()
                 self.train()
             elif choice == "2":
-                self.predict()
+                self.test()
+            elif choice == "3":
+                self.predict_object()
 
 Main().main()

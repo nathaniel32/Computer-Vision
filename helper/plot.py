@@ -28,27 +28,21 @@ def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuraci
     plt.tight_layout()
     plt.show()
 
-def plot_test_prediction(point_cloud, color_plot, true_labels, pred_labels, plot_tool="matplotlib"):
+def plot_prediction(point_cloud, color_plot, pred_label, true_label=None, plot_tool="matplotlib"):
     if plot_tool == "matplotlib":
-        df_true = pd.DataFrame({
-            'x': point_cloud[:, 0], 
-            'y': point_cloud[:, 1], 
-            'z': point_cloud[:, 2], 
-            'label': true_labels
-        })
-        
         df_pred = pd.DataFrame({
             'x': point_cloud[:, 0], 
             'y': point_cloud[:, 1], 
             'z': point_cloud[:, 2], 
-            'label': pred_labels
+            'label': pred_label
         })
         
-        fig = plt.figure(figsize=(20, 6))
+        # Tentukan jumlah subplot berdasarkan ada tidaknya true_label
+        num_subplots = 3 if true_label is not None else 2
+        fig = plt.figure(figsize=(20 if true_label is not None else 14, 6))
         
         # Original Point Cloud dengan Color (paling kiri)
-        ax0 = fig.add_subplot(131, projection='3d')
-        # color_plot should be in shape (N, 3) with values 0-1
+        ax0 = fig.add_subplot(1, num_subplots, 1, projection='3d')
         ax0.scatter(point_cloud[:, 0], point_cloud[:, 1], point_cloud[:, 2], 
                     c=color_plot, s=10, alpha=0.6)
         ax0.set_title('Original Point Cloud (RGB)')
@@ -56,21 +50,33 @@ def plot_test_prediction(point_cloud, color_plot, true_labels, pred_labels, plot
         ax0.set_ylabel('Y')
         ax0.set_zlabel('Z')
         
-        # True Labels
-        ax1 = fig.add_subplot(132, projection='3d')
-        for idx, _class in enumerate(config.CLASSES):
-            c_df = df_true[df_true['label'] == idx]
-            if len(c_df) > 0:
-                ax1.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
-                        label=_class['label'], alpha=0.5, s=10)
-        ax1.set_title('True Labels')
-        ax1.set_xlabel('X')
-        ax1.set_ylabel('Y')
-        ax1.set_zlabel('Z')
-        ax1.legend()
+        # True Labels (hanya jika true_label tidak None)
+        if true_label is not None:
+            df_true = pd.DataFrame({
+                'x': point_cloud[:, 0], 
+                'y': point_cloud[:, 1], 
+                'z': point_cloud[:, 2], 
+                'label': true_label
+            })
+            
+            ax1 = fig.add_subplot(1, num_subplots, 2, projection='3d')
+            for idx, _class in enumerate(config.CLASSES):
+                c_df = df_true[df_true['label'] == idx]
+                if len(c_df) > 0:
+                    ax1.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
+                            label=_class['label'], alpha=0.5, s=10)
+            ax1.set_title('True Labels')
+            ax1.set_xlabel('X')
+            ax1.set_ylabel('Y')
+            ax1.set_zlabel('Z')
+            ax1.legend()
+            
+            # Predicted Labels
+            ax2 = fig.add_subplot(1, num_subplots, 3, projection='3d')
+        else:
+            # Predicted Labels (posisi ke-2 jika true_label None)
+            ax2 = fig.add_subplot(1, num_subplots, 2, projection='3d')
         
-        # Predicted Labels
-        ax2 = fig.add_subplot(133, projection='3d')
         for idx, _class in enumerate(config.CLASSES):
             c_df = df_pred[df_pred['label'] == idx]
             if len(c_df) > 0:
@@ -91,23 +97,40 @@ def plot_test_prediction(point_cloud, color_plot, true_labels, pred_labels, plot
             hex_color = hex_color.lstrip('#')
             return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
         
+        visualizers = []
+        
         # Original Point Cloud dengan Color
         pcd_original = o3d.geometry.PointCloud()
         pcd_original.points = o3d.utility.Vector3dVector(point_cloud)
         pcd_original.colors = o3d.utility.Vector3dVector(color_plot)
         
-        # True Labels
-        pcd_true = o3d.geometry.PointCloud()
-        pcd_true.points = o3d.utility.Vector3dVector(point_cloud)
+        vis_original = o3d.visualization.VisualizerWithVertexSelection()
+        vis_original.create_window(window_name="Original Point Cloud (RGB)", width=600, height=600)
+        vis_original.add_geometry(pcd_original)
+        vis_original.get_render_option().point_size = 3
+        vis_original.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
+        visualizers.append(vis_original)
         
-        true_colors = np.zeros_like(point_cloud, dtype=np.float64)
-        for idx, _class in enumerate(config.CLASSES):
-            mask = (true_labels == idx)
-            if mask.any():
-                color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
-                true_colors[mask] = color
-        
-        pcd_true.colors = o3d.utility.Vector3dVector(true_colors)
+        # True Labels (hanya jika true_label tidak None)
+        if true_label is not None:
+            pcd_true = o3d.geometry.PointCloud()
+            pcd_true.points = o3d.utility.Vector3dVector(point_cloud)
+            
+            true_colors = np.zeros_like(point_cloud, dtype=np.float64)
+            for idx, _class in enumerate(config.CLASSES):
+                mask = (true_label == idx)
+                if mask.any():
+                    color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
+                    true_colors[mask] = color
+            
+            pcd_true.colors = o3d.utility.Vector3dVector(true_colors)
+            
+            vis_true = o3d.visualization.VisualizerWithVertexSelection()
+            vis_true.create_window(window_name="True Labels", width=600, height=600)
+            vis_true.add_geometry(pcd_true)
+            vis_true.get_render_option().point_size = 3
+            vis_true.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
+            visualizers.append(vis_true)
         
         # Predicted Labels
         pcd_pred = o3d.geometry.PointCloud()
@@ -115,56 +138,35 @@ def plot_test_prediction(point_cloud, color_plot, true_labels, pred_labels, plot
         
         pred_colors = np.zeros_like(point_cloud, dtype=np.float64)
         for idx, _class in enumerate(config.CLASSES):
-            mask = (pred_labels == idx)
+            mask = (pred_label == idx)
             if mask.any():
                 color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
                 pred_colors[mask] = color
         
         pcd_pred.colors = o3d.utility.Vector3dVector(pred_colors)
         
-        # Visualize dengan 3 windows
-        vis_original = o3d.visualization.VisualizerWithVertexSelection()
-        vis_original.create_window(window_name="Original Point Cloud (RGB)", width=600, height=600)
-        vis_original.add_geometry(pcd_original)
-        vis_original.get_render_option().point_size = 3
-        vis_original.get_render_option().background_color = np.array([0.5, 0.5, 0.5])  # Gray background
-        
-        vis_true = o3d.visualization.VisualizerWithVertexSelection()
-        vis_true.create_window(window_name="True Labels", width=600, height=600)
-        vis_true.add_geometry(pcd_true)
-        vis_true.get_render_option().point_size = 3
-        vis_true.get_render_option().background_color = np.array([0.5, 0.5, 0.5])  # Gray background
-        
         vis_pred = o3d.visualization.VisualizerWithVertexSelection()
         vis_pred.create_window(window_name="Predicted Labels", width=600, height=600)
         vis_pred.add_geometry(pcd_pred)
         vis_pred.get_render_option().point_size = 3
-        vis_pred.get_render_option().background_color = np.array([0.5, 0.5, 0.5])  # Gray background
+        vis_pred.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
+        visualizers.append(vis_pred)
         
         # Update semua visualizer
-        vis_original.poll_events()
-        vis_original.update_renderer()
-        
-        vis_true.poll_events()
-        vis_true.update_renderer()
-        
-        vis_pred.poll_events()
-        vis_pred.update_renderer()
+        for vis in visualizers:
+            vis.poll_events()
+            vis.update_renderer()
         
         # Tampilkan semua windows
         while True:
-            vis_original.poll_events()
-            vis_original.update_renderer()
+            all_active = True
+            for vis in visualizers:
+                if not vis.poll_events():
+                    all_active = False
+                vis.update_renderer()
             
-            vis_true.poll_events()
-            vis_true.update_renderer()
-            
-            vis_pred.poll_events()
-            vis_pred.update_renderer()
-            
-            if not vis_original.poll_events() or not vis_true.poll_events() or not vis_pred.poll_events():
+            if not all_active:
                 break
         
-        vis_original.destroy_window()
-        vis_true.destroy_window()
-        vis_pred.destroy_window()
+        for vis in visualizers:
+            vis.destroy_window()
