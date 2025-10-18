@@ -1,4 +1,4 @@
-DS_ROOT = r"D:\Datasets\hand_part_color\datasets"
+DS_ROOT = r"C:\Users\natha\Downloads\d"
 LOG_DIR = "result"
 RES_DIR = "result"
 

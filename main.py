@@ -11,6 +11,10 @@ from helper.plot import plot_training_stats, plot_prediction
 from helper.loss import FocalLoss
 import helper.preds
 
+import trimesh
+import numpy as np
+from scipy.spatial import cKDTree
+
 torch.manual_seed(42)
 torch.cuda.manual_seed(42)
 torch.cuda.manual_seed_all(42)
@@ -27,9 +31,10 @@ class Main:
         mesh_file_path = r"C:\Users\natha\Downloads\test_preds\texturedMesh.obj"
         texture_file_path = r"C:\Users\natha\Downloads\test_preds\texture_1001.png"
         save_pcd_path = r"C:\Users\natha\Downloads\test_preds\point_cloud.pcd"
+        save_obj_trim_path = r"C:\Users\natha\Downloads\test_preds\trim_mesh.obj"
 
         # obj to point cloud
-        points, rgb_ints, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=100000)
+        points, rgb_ints, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
 
         # Visualize
         #helper.preds.visualize_pointcloud(points, colors_rgb)
@@ -55,7 +60,35 @@ class Main:
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_prediction(point_plot, color_plot, pred_label, plot_tool="open3d")
+                #plot_prediction(point_plot, color_plot, pred_label, plot_tool="open3d")
+                #plot_prediction(point_plot[pred_label == 0], color_plot[pred_label == 0], pred_label[pred_label == 0], plot_tool="open3d")
+                
+                # remove mesh where pred label == 0
+                # --- Load mesh
+                mesh = trimesh.load(mesh_file_path, process=False)
+
+                # --- Ambil points yang bukan label 0
+                xyz_label0 = points[pred_label == 0]
+
+                # --- Buat KDTree untuk filter vertex
+                if len(xyz_label0) > 0:
+                    kdtree = cKDTree(xyz_label0)
+                    distances, _ = kdtree.query(mesh.vertices, k=1)
+                    mask_keep = distances > 0.01  # threshold jarak (sesuaikan sesuai scale)
+                else:
+                    # Jika tidak ada label 0, keep semua vertices
+                    mask_keep = np.ones(len(mesh.vertices), dtype=bool)
+
+                # --- Hapus faces yang memiliki vertex dengan label 0
+                faces_keep = mask_keep[mesh.faces].all(axis=1)
+                mesh.update_faces(faces_keep)
+                mesh.remove_unreferenced_vertices()
+
+                # --- Simpan mesh (catatan: UV mapping mungkin tidak terjaga)
+                mesh.export(save_obj_trim_path)
+                
+                print(f"Mesh trimmed saved to: {save_obj_trim_path}")
+                print(f"Original faces: {len(mesh.faces)} -> Remaining faces: {faces_keep.sum()}")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()

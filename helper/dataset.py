@@ -130,7 +130,7 @@ class PointCloudAugmenter:
         
         return aug_points, aug_labels, aug_colors
 
-def transform_data(xyz, rgb_raw, labels=None):
+""" def transform_data(xyz, rgb_raw, labels=None):
     # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
     rgb = np.zeros((len(rgb_raw), 3), dtype=np.float32)
     rgb[:, 0] = ((rgb_raw >> 16) & 0xFF) / 255.0  # R
@@ -151,6 +151,27 @@ def transform_data(xyz, rgb_raw, labels=None):
         return sampled_points, sampled_colors
     else:
         sampled_labels = labels[idx]
+        return sampled_points, sampled_colors, sampled_labels """
+
+def transform_data(xyz, rgb_raw, labels=None):
+    # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
+    rgb = np.zeros((len(rgb_raw), 3), dtype=np.float32)
+    rgb[:, 0] = ((rgb_raw >> 16) & 0xFF) / 255.0  # R
+    rgb[:, 1] = ((rgb_raw >> 8) & 0xFF) / 255.0   # G
+    rgb[:, 2] = (rgb_raw & 0xFF) / 255.0          # B
+
+    # Normalisasi posisi titik
+    xyz_centered = xyz - np.mean(xyz, axis=0)
+    xyz_normalized = xyz_centered / np.max(np.linalg.norm(xyz_centered, axis=1))
+
+    # Warna disesuaikan
+    sampled_points = xyz_normalized
+    sampled_colors = rgb
+
+    if labels is None:
+        return sampled_points, sampled_colors
+    else:
+        sampled_labels = labels
         return sampled_points, sampled_colors, sampled_labels
 
 def load_pcd_with_point_labels(directory, augment=False, num_augmentations=2):
