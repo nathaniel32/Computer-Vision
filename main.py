@@ -7,7 +7,7 @@ from helper.log import logger
 from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_data, sample_points
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
-from helper.plot import plot_training_stats, plot_prediction
+from helper.plot import plot_training_stats, plot_point_cloud
 from helper.loss import FocalLoss
 import helper.preds
 
@@ -30,12 +30,7 @@ class Main:
         save_obj_trim_path = r"C:\Users\natha\Downloads\test_preds\trim_mesh.obj"
 
         # obj to point cloud
-        points, rgb_ints, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
-
-        # Visualize
-        #helper.preds.visualize_pointcloud(points, colors_rgb)
-
-        sampled_points, sampled_colors = sample_points(points, rgb_ints)
+        sampled_points, sampled_colors, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
 
         norm_points, norm_colors = transform_data(sampled_points, sampled_colors)
 
@@ -54,16 +49,21 @@ class Main:
                 color = color.unsqueeze(0).to(self.device)
                 outputs = model(point, color)
 
-                point_plot = point.squeeze(0).transpose(0, 1).cpu().numpy()
+                point_plot = point.squeeze(0).transpose(0, 1).cpu().numpy() # sudah dinorm
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                #plot_prediction(point_plot, color_plot, pred_label, plot_tool="open3d")
+                # full
+                plot_point_cloud(sampled_points, color_plot, pred_label=pred_label, plot_tool="open3d")
                 
                 remove_item_id = 0
                 helper.preds.remove_object_part(sampled_points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id)
-                plot_prediction(sampled_points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label[pred_label == remove_item_id], plot_tool="open3d")
-                plot_prediction(sampled_points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label[pred_label != remove_item_id], plot_tool="open3d")
+                
+                # background
+                plot_point_cloud(sampled_points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label=pred_label[pred_label == remove_item_id], plot_tool="open3d")
+                
+                # target
+                plot_point_cloud(sampled_points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label=pred_label[pred_label != remove_item_id], plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()
@@ -144,7 +144,7 @@ class Main:
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_prediction(point_plot, color_plot, pred_label, true_label=label)
+                plot_point_cloud(point_plot, color_plot, pred_label=pred_label, true_label=label)
 
     def train(self, val_interval=1):
         TRAIN_DIR = os.path.join(config.DS_ROOT, "train")

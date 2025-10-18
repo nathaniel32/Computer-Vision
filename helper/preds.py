@@ -1,6 +1,9 @@
 import trimesh
 import numpy as np
 from PIL import Image
+import trimesh
+import numpy as np
+from scipy.spatial import cKDTree
 
 # ============= BARYCENTRIC COORDINATES =============
 def barycentric_coords(p, tri):
@@ -162,49 +165,54 @@ def read_pointcloud_pcd(pcd_path):
     
     return points, rgb_ints, colors_rgb
 
-# ============= VISUALIZE =============
-def visualize_pointcloud(points, colors_rgb):
-    """Visualisasi point cloud dengan RGB integer"""
-    try:
-        import open3d as o3d
-        print("\nVisualizing with Open3D...")
+def smooth_labels(points, pred_label, k=10):
+    tree = cKDTree(points)
+    new_label = np.copy(pred_label)
+    
+    for i, p in enumerate(points):
+        dists, idx = tree.query(p, k=k)
+        neighbor_labels = pred_label[idx]
+        # ambil mayoritas
+        counts = np.bincount(neighbor_labels)
+        new_label[i] = np.argmax(counts)
         
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        pcd.colors = o3d.utility.Vector3dVector(colors_rgb.astype(np.float64) / 255.0)
-        
-        o3d.visualization.draw_geometries([pcd], window_name="Point Cloud", width=1000, height=800)
-    except ImportError:
-        print("Open3D not installed, skipping visualization")
-
-import trimesh
-import numpy as np
-from scipy.spatial import cKDTree
+    return new_label
 
 def remove_object_part(points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id):
-    # remove mesh where pred label == "remove_item_id"
     # --- Load mesh
     mesh = trimesh.load(mesh_file_path, process=False)
+    original_faces = len(mesh.faces)
 
-    # --- Ambil points yang bukan label "remove_item_id"
+    pred_label = smooth_labels(points=points, pred_label=pred_label)
+
+    # --- Ambil points yang akan dihapus
     points_to_remove = points[pred_label == remove_item_id]
 
-    # --- Buat KDTree untuk filter vertex
     if len(points_to_remove) > 0:
+        # --- KDTree untuk filter vertex
         kdtree = cKDTree(points_to_remove)
+
+        # Jarak terdekat tiap vertex ke points_to_remove
         distances, _ = kdtree.query(mesh.vertices, k=1)
-        mask_keep = distances > 0.01  # threshold jarak (sesuaikan sesuai scale)
+
+        # Rata-rata jarak antar points_to_remove sendiri
+        distances_nn, _ = kdtree.query(points_to_remove, k=2)
+        mean_dist = np.mean(distances_nn[:, 1])
+        threshold = mean_dist * 2
+
+        # --- Mask untuk vertex yang ingin dipertahankan
+        mask_keep = distances > threshold
     else:
-        # Jika tidak ada label 0, keep semua vertices
+        # Jika tidak ada label yang sesuai, pertahankan semua vertex
         mask_keep = np.ones(len(mesh.vertices), dtype=bool)
 
-    # --- Hapus faces yang memiliki vertex dengan label "remove_item_id"
+    # --- Hapus faces yang memiliki vertex yang akan dihapus
     faces_keep = mask_keep[mesh.faces].all(axis=1)
     mesh.update_faces(faces_keep)
     mesh.remove_unreferenced_vertices()
 
-    # --- Simpan mesh (catatan: UV mapping mungkin tidak terjaga)
+    # --- Simpan mesh
     mesh.export(save_obj_trim_path)
-    
+
     print(f"Mesh trimmed saved to: {save_obj_trim_path}")
-    print(f"Original faces: {len(mesh.faces)} -> Remaining faces: {faces_keep.sum()}")
+    print(f"Original faces: {original_faces} -> Remaining faces: {len(mesh.faces)}")

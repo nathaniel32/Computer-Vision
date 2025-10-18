@@ -28,29 +28,29 @@ def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuraci
     plt.tight_layout()
     plt.show()
 
-def plot_prediction(point_cloud, color_plot, pred_label, true_label=None, plot_tool="matplotlib"):
+def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, plot_tool="matplotlib"):
     if plot_tool == "matplotlib":
-        df_pred = pd.DataFrame({
-            'x': point_cloud[:, 0], 
-            'y': point_cloud[:, 1], 
-            'z': point_cloud[:, 2], 
-            'label': pred_label
-        })
+        # Tentukan jumlah subplot
+        num_subplots = 1
+        if true_label is not None:
+            num_subplots += 1
+        if pred_label is not None:
+            num_subplots += 1
         
-        # Tentukan jumlah subplot berdasarkan ada tidaknya true_label
-        num_subplots = 3 if true_label is not None else 2
-        fig = plt.figure(figsize=(20 if true_label is not None else 14, 6))
+        fig = plt.figure(figsize=(7 * num_subplots, 6))
+        subplot_idx = 1
         
-        # Original Point Cloud dengan Color (paling kiri)
-        ax0 = fig.add_subplot(1, num_subplots, 1, projection='3d')
-        ax0.scatter(point_cloud[:, 0], point_cloud[:, 1], point_cloud[:, 2], 
+        # Original Point Cloud dengan Color
+        ax = fig.add_subplot(1, num_subplots, subplot_idx, projection='3d')
+        ax.scatter(point_cloud[:, 0], point_cloud[:, 1], point_cloud[:, 2], 
                     c=color_plot, s=10, alpha=0.6)
-        ax0.set_title('Original Point Cloud (RGB)')
-        ax0.set_xlabel('X')
-        ax0.set_ylabel('Y')
-        ax0.set_zlabel('Z')
+        ax.set_title('Original Point Cloud (RGB)')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        subplot_idx += 1
         
-        # True Labels (hanya jika true_label tidak None)
+        # True Labels (jika true_label tidak None)
         if true_label is not None:
             df_true = pd.DataFrame({
                 'x': point_cloud[:, 0], 
@@ -59,34 +59,39 @@ def plot_prediction(point_cloud, color_plot, pred_label, true_label=None, plot_t
                 'label': true_label
             })
             
-            ax1 = fig.add_subplot(1, num_subplots, 2, projection='3d')
+            ax = fig.add_subplot(1, num_subplots, subplot_idx, projection='3d')
             for idx, _class in enumerate(config.CLASSES):
                 c_df = df_true[df_true['label'] == idx]
                 if len(c_df) > 0:
-                    ax1.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
+                    ax.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
                             label=_class['label'], alpha=0.5, s=10)
-            ax1.set_title('True Labels')
-            ax1.set_xlabel('X')
-            ax1.set_ylabel('Y')
-            ax1.set_zlabel('Z')
-            ax1.legend()
-            
-            # Predicted Labels
-            ax2 = fig.add_subplot(1, num_subplots, 3, projection='3d')
-        else:
-            # Predicted Labels (posisi ke-2 jika true_label None)
-            ax2 = fig.add_subplot(1, num_subplots, 2, projection='3d')
+            ax.set_title('True Labels')
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+            ax.legend()
+            subplot_idx += 1
         
-        for idx, _class in enumerate(config.CLASSES):
-            c_df = df_pred[df_pred['label'] == idx]
-            if len(c_df) > 0:
-                ax2.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
-                        label=_class['label'], alpha=0.5, s=10)
-        ax2.set_title('Predicted Labels')
-        ax2.set_xlabel('X')
-        ax2.set_ylabel('Y')
-        ax2.set_zlabel('Z')
-        ax2.legend()
+        # Predicted Labels (jika pred_label tidak None)
+        if pred_label is not None:
+            df_pred = pd.DataFrame({
+                'x': point_cloud[:, 0], 
+                'y': point_cloud[:, 1], 
+                'z': point_cloud[:, 2], 
+                'label': pred_label
+            })
+            
+            ax = fig.add_subplot(1, num_subplots, subplot_idx, projection='3d')
+            for idx, _class in enumerate(config.CLASSES):
+                c_df = df_pred[df_pred['label'] == idx]
+                if len(c_df) > 0:
+                    ax.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
+                            label=_class['label'], alpha=0.5, s=10)
+            ax.set_title('Predicted Labels')
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+            ax.legend()
         
         plt.tight_layout()
         plt.show()
@@ -111,7 +116,7 @@ def plot_prediction(point_cloud, color_plot, pred_label, true_label=None, plot_t
         vis_original.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
         visualizers.append(vis_original)
         
-        # True Labels (hanya jika true_label tidak None)
+        # True Labels (jika true_label tidak None)
         if true_label is not None:
             pcd_true = o3d.geometry.PointCloud()
             pcd_true.points = o3d.utility.Vector3dVector(point_cloud)
@@ -132,25 +137,26 @@ def plot_prediction(point_cloud, color_plot, pred_label, true_label=None, plot_t
             vis_true.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
             visualizers.append(vis_true)
         
-        # Predicted Labels
-        pcd_pred = o3d.geometry.PointCloud()
-        pcd_pred.points = o3d.utility.Vector3dVector(point_cloud)
-        
-        pred_colors = np.zeros_like(point_cloud, dtype=np.float64)
-        for idx, _class in enumerate(config.CLASSES):
-            mask = (pred_label == idx)
-            if mask.any():
-                color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
-                pred_colors[mask] = color
-        
-        pcd_pred.colors = o3d.utility.Vector3dVector(pred_colors)
-        
-        vis_pred = o3d.visualization.VisualizerWithVertexSelection()
-        vis_pred.create_window(window_name="Predicted Labels", width=600, height=600)
-        vis_pred.add_geometry(pcd_pred)
-        vis_pred.get_render_option().point_size = 3
-        vis_pred.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
-        visualizers.append(vis_pred)
+        # Predicted Labels (jika pred_label tidak None)
+        if pred_label is not None:
+            pcd_pred = o3d.geometry.PointCloud()
+            pcd_pred.points = o3d.utility.Vector3dVector(point_cloud)
+            
+            pred_colors = np.zeros_like(point_cloud, dtype=np.float64)
+            for idx, _class in enumerate(config.CLASSES):
+                mask = (pred_label == idx)
+                if mask.any():
+                    color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
+                    pred_colors[mask] = color
+            
+            pcd_pred.colors = o3d.utility.Vector3dVector(pred_colors)
+            
+            vis_pred = o3d.visualization.VisualizerWithVertexSelection()
+            vis_pred.create_window(window_name="Predicted Labels", width=600, height=600)
+            vis_pred.add_geometry(pcd_pred)
+            vis_pred.get_render_option().point_size = 3
+            vis_pred.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
+            visualizers.append(vis_pred)
         
         # Update semua visualizer
         for vis in visualizers:

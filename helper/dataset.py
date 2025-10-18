@@ -7,6 +7,7 @@ from glob import glob
 import os
 import config
 from scipy.spatial.transform import Rotation as R
+from helper.plot import plot_point_cloud
 
 class PointCloudAugmenter:
     def __init__(self, p_aug=0.7):
@@ -108,26 +109,19 @@ class PointCloudAugmenter:
 
         for aug_name, aug_params in augmentation_list:
             if aug_name == 'rotation':
-                aug_points, aug_colors, aug_labels = self.random_rotation(
-                    aug_points, aug_colors, aug_labels, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_rotation(aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'axis_rotation':
-                aug_points, aug_colors, aug_labels = self.random_axis_rotation(
-                    aug_points, aug_colors, aug_labels)
+                aug_points, aug_colors, aug_labels = self.random_axis_rotation(aug_points, aug_colors, aug_labels)
             elif aug_name == 'scaling':
-                aug_points, aug_colors, aug_labels = self.random_scaling(
-                    aug_points, aug_colors, aug_labels, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_scaling(aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'jitter':
-                aug_points, aug_colors, aug_labels = self.random_jitter(
-                    aug_points, aug_colors, aug_labels, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_jitter(aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'dropout':
-                aug_points, aug_colors, aug_labels = self.random_dropout(
-                    aug_points, aug_colors, aug_labels, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_dropout(aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'translation':
-                aug_points, aug_colors, aug_labels = self.random_translation(
-                    aug_points, aug_colors, aug_labels, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_translation(aug_points, aug_colors, aug_labels, **aug_params)
             elif aug_name == 'flip':
-                aug_points, aug_colors, aug_labels = self.random_flip(
-                    aug_points, aug_colors, aug_labels, **aug_params)
+                aug_points, aug_colors, aug_labels = self.random_flip(aug_points, aug_colors, aug_labels, **aug_params)
 
         return aug_points, aug_colors, aug_labels
 
@@ -217,12 +211,13 @@ def load_pcd_with_point_labels(directory, augment=False, num_augmentations=2):
         # Augmented samples
         if augment:
             for _ in range(num_augmentations):
-                aug_points, aug_colors, aug_labels = augmenter.augment(
-                    norm_points, norm_colors, sampled_labels
-                )
+                aug_points, aug_colors, aug_labels = augmenter.augment(norm_points, norm_colors, sampled_labels)
                 point_clouds.append(aug_points)
                 color_clouds.append(aug_colors)
                 label_clouds.append(aug_labels)
+
+                # plot augment
+                #plot_point_cloud(aug_points, aug_colors, true_label=aug_labels)
     
     print(f"Total samples (with augmentation): {len(point_clouds)}")
     return point_clouds, color_clouds, label_clouds
