@@ -99,8 +99,12 @@ class PointCloudAugmenter:
             augmentation_list = [
                 ('rotation', {}),
                 ('scaling', {'scale_range': (0.85, 1.15)}),
-                #('jitter', {'sigma': 0.01}),
+                ('jitter', {'sigma': 0.01}),
                 ('translation', {'trans_range': 0.1}),
+
+                ('axis_rotation', {}),
+                ('flip', {'axes': [0, 1]}),
+                #('dropout', {'dropout_rate': 0.15})
             ]
 
         aug_points = points.copy()
