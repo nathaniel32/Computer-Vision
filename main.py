@@ -10,6 +10,7 @@ from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_point_cloud
 from helper.loss import FocalLoss
 import helper.preds
+import numpy as np
 
 torch.manual_seed(42)
 torch.cuda.manual_seed(42)
@@ -32,9 +33,11 @@ class Main:
         save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
 
         # obj to point cloud
-        sampled_points, sampled_color_ints, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
+        points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
+        
+        #num_batches = int(np.ceil(points.shape[0] / points))
 
-        pred_dataset = PointCloudSegmentationDataset([sampled_points], [sampled_color_ints])
+        pred_dataset = PointCloudSegmentationDataset([points], [colors_int])
 
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
@@ -44,26 +47,26 @@ class Main:
 
         model.eval()
         with torch.no_grad():
-            for (point, color) in pred_dataset:
-                point = point.unsqueeze(0).to(self.device)
-                color = color.unsqueeze(0).to(self.device)
-                outputs = model(point, color)
+            for (t_point, t_color) in pred_dataset:
+                t_point = t_point.unsqueeze(0).to(self.device)
+                t_color = t_color.unsqueeze(0).to(self.device)
+                outputs = model(t_point, t_color)
 
-                point_plot = point.squeeze(0).transpose(0, 1).cpu().numpy() # sudah dinorm
-                color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
+                point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy() # ukuran dinorm!
+                color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
                 # full
-                plot_point_cloud(sampled_points, color_plot, pred_label=pred_label, plot_tool="open3d")
+                plot_point_cloud(points, color_plot, pred_label=pred_label, plot_tool="open3d")
                 
                 remove_item_id = 0
-                helper.preds.remove_object_part(sampled_points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id)
+                helper.preds.remove_object_part(points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id)
                 
                 # background
-                plot_point_cloud(sampled_points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label=pred_label[pred_label == remove_item_id], plot_tool="open3d")
+                plot_point_cloud(points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label=pred_label[pred_label == remove_item_id], plot_tool="open3d")
                 
                 # target
-                plot_point_cloud(sampled_points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label=pred_label[pred_label != remove_item_id], plot_tool="open3d")
+                plot_point_cloud(points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label=pred_label[pred_label != remove_item_id], plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()

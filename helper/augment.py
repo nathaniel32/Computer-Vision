@@ -8,7 +8,7 @@ class ColorPartAugmenter: #tidak merusak norm
     
     def __init__(self, target_label):
         self.target_label = target_label
-        self.color_augment_list = self.get_augment_list(hex_colors_list=['#FF6600', '#00CCFF', '#FF00FF', '#FFFF00'])
+        self.color_augment_list = self.get_augment_list(hex_colors_list=["#A39A93", "#7AB7C7", "#997899", "#3A4443"])
     
     def _get_mask(self, labels):
         return labels == self.target_label
