@@ -98,8 +98,8 @@ class PointCloudAugmenter:
         if augmentation_list is None:
             augmentation_list = [
                 ('rotation', {}),
-                ('scaling', {'scale_range': (0.85, 1.15)}),
-                ('jitter', {'sigma': 0.01}),
+                #('scaling', {'scale_range': (0.85, 1.15)}),
+                #('jitter', {'sigma': 0.01}),
                 ('translation', {'trans_range': 0.1}),
 
                 ('axis_rotation', {}),
