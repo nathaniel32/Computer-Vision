@@ -208,9 +208,9 @@ class Augmenter:
     
     def augment(self, points, colors, labels):
         # geometric aug
-        points, colors, labels = self.object_augmenter.augment(points, colors, labels)
+        #points, colors, labels = self.object_augmenter.augment(points, colors, labels)
         
         # color aug
-        colors = self.color_part_augmenter.augment(colors, labels)
+        #colors = self.color_part_augmenter.augment(colors, labels)
         
         return points, colors, labels
