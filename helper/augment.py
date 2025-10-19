@@ -6,8 +6,9 @@ import config
 class ColorPartAugmenter: #tidak merusak norm
     """Augmentasi warna point cloud"""
     
-    def __init__(self, target_label):
+    def __init__(self, target_label=config.TARGET_CLASS_ID, p_aug=0.7):
         self.target_label = target_label
+        self.p_aug = p_aug
         self.color_augment_list = self.get_augment_list(hex_colors_list=["#A39A93", "#7AB7C7", "#997899", "#3A4443"])
     
     def _get_mask(self, labels):
@@ -71,7 +72,13 @@ class ColorPartAugmenter: #tidak merusak norm
         
         return aug_list
     
+    def _should_augment(self):
+        return np.random.random() < self.p_aug
+    
     def augment(self, colors, labels):
+        if not self._should_augment():
+            return colors
+        
         # Random color augmentasi
         color_idx = np.random.randint(0, len(self.color_augment_list))
         color_aug_func = self.color_augment_list[color_idx]
@@ -199,8 +206,8 @@ class ObjectAugmenter: # merusak norm
 
 class Augmenter:    
     def __init__(self):
-        self.color_part_augmenter = ColorPartAugmenter(target_label=config.TARGET_CLASS_ID)
-        self.object_augmenter = ObjectAugmenter(p_aug=0.7)
+        self.color_part_augmenter = ColorPartAugmenter()
+        self.object_augmenter = ObjectAugmenter()
     
     def augment(self, points, colors, labels):
         # geometric aug
