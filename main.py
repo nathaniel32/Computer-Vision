@@ -24,10 +24,12 @@ class Main:
         os.makedirs(config.RES_DIR, exist_ok=True)
 
     def predict_object(self):
-        mesh_file_path = r"C:\Users\natha\Downloads\test_preds\texturedMesh.obj"
-        texture_file_path = r"C:\Users\natha\Downloads\test_preds\texture_1001.png"
-        save_pcd_path = r"C:\Users\natha\Downloads\test_preds\point_cloud.pcd"
-        save_obj_trim_path = r"C:\Users\natha\Downloads\test_preds\trim_mesh.obj"
+        mesh_file_path = input("Mesh Path: ").strip('"').strip()
+        texture_file_path = input("Texture Path: ").strip('"').strip()
+        save_dir_path = input("Save Dir Path: ").strip('"').strip()
+        
+        save_pcd_path = os.path.join(save_dir_path, "point_cloud.pcd")
+        save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
 
         # obj to point cloud
         sampled_points, sampled_colors, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
