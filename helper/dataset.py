@@ -22,12 +22,12 @@ def sample_points(xyz, rgb_raw, labels=None):
         sampled_labels = labels[idx]
         return sampled_points, sampled_colors, sampled_labels
 
-def transform_color(rgb_raw):
+def transform_color(color_int):
     # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
-    colors = np.zeros((len(rgb_raw), 3), dtype=np.float32)
-    colors[:, 0] = ((rgb_raw >> 16) & 0xFF) / 255.0  # R
-    colors[:, 1] = ((rgb_raw >> 8) & 0xFF) / 255.0   # G
-    colors[:, 2] = (rgb_raw & 0xFF) / 255.0          # B
+    colors = np.zeros((len(color_int), 3), dtype=np.float32)
+    colors[:, 0] = ((color_int >> 16) & 0xFF) / 255.0  # R
+    colors[:, 1] = ((color_int >> 8) & 0xFF) / 255.0   # G
+    colors[:, 2] = (color_int & 0xFF) / 255.0          # B
     return colors
 
 def transform_cloud_point(points):
@@ -62,12 +62,10 @@ def load_pcd_with_point_labels(directory):
         labels = data[:, 4].astype(int)
 
         sampled_points, sampled_colors, sampled_labels = sample_points(xyz, rgb_raw, labels=labels)
-
-        norm_colors = transform_color(sampled_colors)
         
         # Original sample
         point_clouds.append(sampled_points)
-        color_clouds.append(norm_colors)
+        color_clouds.append(sampled_colors)
         label_clouds.append(sampled_labels)
     
     print(f"Total samples: {len(point_clouds)}")
@@ -76,7 +74,7 @@ def load_pcd_with_point_labels(directory):
 class PointCloudSegmentationDataset(Dataset):
     def __init__(self, point_clouds, color_clouds, labels=None, augment=False):
         self.point_clouds = point_clouds
-        self.color_clouds = color_clouds
+        self.color_clouds = [transform_color(c) for c in color_clouds]
         self.labels = labels
         self.augment = augment
         self.augmenter = Augmenter()
@@ -96,8 +94,6 @@ class PointCloudSegmentationDataset(Dataset):
             # Transpose points: (N, 3) -> (3, N)
             tensor_points = tensor_points.transpose(0, 1)
             tensor_colors = tensor_colors.transpose(0, 1)
-
-            
 
             return tensor_points, tensor_colors
         else:

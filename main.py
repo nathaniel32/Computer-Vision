@@ -4,7 +4,7 @@ import torch.nn as nn
 import os
 import config
 from helper.log import logger
-from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_cloud_point, transform_color
+from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_point_cloud
@@ -32,12 +32,9 @@ class Main:
         save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
 
         # obj to point cloud
-        sampled_points, sampled_colors, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
+        sampled_points, sampled_color_ints, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
 
-        norm_points = transform_cloud_point(sampled_points)
-        norm_colors = transform_color(sampled_colors)
-
-        pred_dataset = PointCloudSegmentationDataset([norm_points], [norm_colors])
+        pred_dataset = PointCloudSegmentationDataset([sampled_points], [sampled_color_ints])
 
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
