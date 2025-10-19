@@ -208,13 +208,13 @@ class Augmenter:
         color_idx = np.random.randint(0, len(self.color_augment_list))
         color_aug_func = self.color_augment_list[color_idx]
         
-        # Apply geometric augmentasi
-        aug_points, aug_colors, aug_labels = self.geometric_augmenter.augment(points, colors, labels)
+        # geometric aug
+        points, colors, labels = self.geometric_augmenter.augment(points, colors, labels)
         
-        # Apply color augmentasi
-        aug_colors = color_aug_func(aug_colors, aug_labels)
+        # color aug
+        colors = color_aug_func(colors, labels)
         
         # plot
-        #plot_point_cloud(aug_points, aug_colors, true_label=aug_labels)
+        #plot_point_cloud(points, colors, true_label=labels)
 
-        return aug_points, aug_colors, aug_labels
+        return points, colors, labels
