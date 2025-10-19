@@ -45,10 +45,7 @@ class ColorPartAugmenter: #tidak merusak norm
         colors_aug[mask] = hsv_to_rgb(hsv)
         
         return colors_aug
-    
-    def original(self, colors, labels):
-        return colors.copy()
-    
+        
     def original_to_color(self, colors, labels, hex_color):
         hue = self._get_hue_from_hex(hex_color)
         return self._apply_hue_shift(colors, labels, hue, use_negative=False)
@@ -62,7 +59,7 @@ class ColorPartAugmenter: #tidak merusak norm
     
     def get_augment_list(self, hex_colors_list):
         """Return list augmentasi dengan custom colors"""
-        aug_list = [self.original, self.negative]
+        aug_list = [self.negative]
         
         for hex_color in hex_colors_list:
             aug_list.append(lambda c, l, hc=hex_color: self.negative_to_color(c, l, hc))
@@ -168,10 +165,10 @@ class ObjectAugmenter: # merusak norm
         if augmentation_list is None:
             augmentation_list = [
                 ('rotation', {}),
-                ('scaling', {'scale_range': (0.85, 1.15)}),
-                ('translation', {'trans_range': 0.1}),
-                ('axis_rotation', {}),
                 ('flip', {'axes': [0, 1]}),
+                #('scaling', {'scale_range': (0.85, 1.15)}),
+                #('translation', {'trans_range': 0.1}),
+                #('axis_rotation', {}),
                 #('jitter', {'sigma': 0.01})
             ]
 
