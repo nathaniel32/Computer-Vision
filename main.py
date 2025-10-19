@@ -4,7 +4,7 @@ import torch.nn as nn
 import os
 import config
 from helper.log import logger
-from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_data, sample_points
+from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset, transform_cloud_point, transform_color
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_point_cloud
@@ -34,7 +34,8 @@ class Main:
         # obj to point cloud
         sampled_points, sampled_colors, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
 
-        norm_points, norm_colors = transform_data(sampled_points, sampled_colors)
+        norm_points = transform_cloud_point(sampled_points)
+        norm_colors = transform_color(sampled_colors)
 
         pred_dataset = PointCloudSegmentationDataset([norm_points], [norm_colors])
 
@@ -152,13 +153,13 @@ class Main:
         TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
         VAL_DIR = os.path.join(config.DS_ROOT, "val")
 
-        train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR, augment=True)
+        train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
         val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR)
         
         logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         logger.info(f"Validation samples: {len(val_point_clouds)}")
 
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augment=True)
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=0)
