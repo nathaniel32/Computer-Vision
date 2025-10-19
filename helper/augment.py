@@ -1,13 +1,14 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
-from helper.plot import plot_point_cloud
+import config
 
-class ColorAugmenter: #tidak merusak norm
+class ColorPartAugmenter: #tidak merusak norm
     """Augmentasi warna point cloud"""
     
-    def __init__(self, target_label=1):
+    def __init__(self, target_label):
         self.target_label = target_label
+        self.color_augment_list = self.get_augment_list(hex_colors_list=['#FF6600', '#00CCFF', '#FF00FF', '#FFFF00'])
     
     def _get_mask(self, labels):
         return labels == self.target_label
@@ -19,7 +20,7 @@ class ColorAugmenter: #tidak merusak norm
     
     @staticmethod
     def _get_hue_from_hex(hex_color):
-        rgb = ColorAugmenter.hex_to_rgb(hex_color)
+        rgb = ColorPartAugmenter.hex_to_rgb(hex_color)
         rgb = rgb.reshape(1, -1)
         hsv = rgb_to_hsv(rgb)
         return hsv[0, 0]
@@ -69,9 +70,15 @@ class ColorAugmenter: #tidak merusak norm
             aug_list.append(lambda c, l, hc=hex_color: self.original_to_color(c, l, hc))
         
         return aug_list
+    
+    def augment(self, colors, labels):
+        # Random color augmentasi
+        color_idx = np.random.randint(0, len(self.color_augment_list))
+        color_aug_func = self.color_augment_list[color_idx]
+        aug_colors = color_aug_func(colors, labels)
+        return aug_colors
 
-
-class GeometricAugmenter: # merusak norm
+class ObjectAugmenter: # merusak norm
     """Augmentasi geometri point cloud"""
     
     def __init__(self, p_aug=0.7):
@@ -190,31 +197,16 @@ class GeometricAugmenter: # merusak norm
 
         return aug_points, aug_colors, aug_labels
 
-class Augmenter:
-    """Main augmenter untuk color + geometric"""
-    
-    def __init__(self, hex_colors_list=None):
-        self.color_augmenter = ColorAugmenter(target_label=1)
-        self.geometric_augmenter = GeometricAugmenter(p_aug=0.7)
-        
-        if hex_colors_list is None:
-            hex_colors_list = ['#FF6600', '#00CCFF', '#FF00FF', '#FFFF00']
-        
-        self.color_augment_list = self.color_augmenter.get_augment_list(hex_colors_list)
+class Augmenter:    
+    def __init__(self):
+        self.color_part_augmenter = ColorPartAugmenter(target_label=config.TARGET_CLASS_ID)
+        self.object_augmenter = ObjectAugmenter(p_aug=0.7)
     
     def augment(self, points, colors, labels):
-        """Apply random color + geometric augmentasi"""
-        # Random color augmentasi
-        color_idx = np.random.randint(0, len(self.color_augment_list))
-        color_aug_func = self.color_augment_list[color_idx]
-        
         # geometric aug
-        points, colors, labels = self.geometric_augmenter.augment(points, colors, labels)
+        points, colors, labels = self.object_augmenter.augment(points, colors, labels)
         
         # color aug
-        colors = color_aug_func(colors, labels)
+        colors = self.color_part_augmenter.augment(colors, labels)
         
-        # plot
-        #plot_point_cloud(points, colors, true_label=labels)
-
         return points, colors, labels

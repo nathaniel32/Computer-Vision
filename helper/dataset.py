@@ -7,14 +7,15 @@ from glob import glob
 import os
 import config
 from helper.augment import Augmenter
+from helper.plot import plot_point_cloud
 
-def sample_points(xyz, rgb_raw, labels=None):
-    if len(xyz) < config.NUM_SAMPLE_POINTS:
-        raise ValueError(f"Jumlah titik ({len(xyz)}) lebih sedikit daripada NUM_SAMPLE_POINTS ({config.NUM_SAMPLE_POINTS})")
+def sample_points(points, colors, labels=None):
+    if len(points) < config.NUM_SAMPLE_POINTS:
+        raise ValueError(f"Jumlah titik ({len(points)}) lebih sedikit daripada NUM_SAMPLE_POINTS ({config.NUM_SAMPLE_POINTS})")
     
-    idx = np.random.choice(len(xyz), config.NUM_SAMPLE_POINTS, replace=False)
-    sampled_points = xyz[idx]
-    sampled_colors = rgb_raw[idx]
+    idx = np.random.choice(len(points), config.NUM_SAMPLE_POINTS, replace=False)
+    sampled_points = points[idx]
+    sampled_colors = colors[idx]
 
     if labels is None:
         return sampled_points, sampled_colors
@@ -37,7 +38,7 @@ def transform_cloud_point(points):
     norm_points /= np.max(np.linalg.norm(norm_points, axis=1))
     return norm_points
 
-def load_pcd_with_point_labels(directory):
+def load_pcd_with_point_labels(directory, sampling=False):
     point_clouds, label_clouds, color_clouds = [], [], []
     pcd_files = glob(os.path.join(directory, "*.pcd"))
     
@@ -57,26 +58,28 @@ def load_pcd_with_point_labels(directory):
         if data.shape[1] < 5:  # x, y, z, rgb, label
             continue
         
-        xyz = data[:, :3]
-        rgb_raw = data[:, 3].astype(np.uint32)
+        points = data[:, :3]
+        color_ints = data[:, 3].astype(np.uint32)
         labels = data[:, 4].astype(int)
 
-        sampled_points, sampled_colors, sampled_labels = sample_points(xyz, rgb_raw, labels=labels)
+        if sampling:
+            points, color_ints, labels = sample_points(points, color_ints, labels=labels)
         
         # Original sample
-        point_clouds.append(sampled_points)
-        color_clouds.append(sampled_colors)
-        label_clouds.append(sampled_labels)
+        point_clouds.append(points)
+        color_clouds.append(color_ints)
+        label_clouds.append(labels)
     
     print(f"Total samples: {len(point_clouds)}")
     return point_clouds, color_clouds, label_clouds
 
 class PointCloudSegmentationDataset(Dataset):
-    def __init__(self, point_clouds, color_clouds, labels=None, augment=False):
+    def __init__(self, point_clouds, color_clouds, labels=None, augment=False, sampling=False):
         self.point_clouds = point_clouds
         self.color_clouds = [transform_color(c) for c in color_clouds]
         self.labels = labels
         self.augment = augment
+        self.sampling = sampling
         self.augmenter = Augmenter()
 
     def __len__(self):
@@ -87,6 +90,9 @@ class PointCloudSegmentationDataset(Dataset):
         colors = self.color_clouds[idx]
         
         if self.labels is None:
+            if self.sampling:
+                points, colors = sample_points(points, colors)
+            
             points = transform_cloud_point(points)
             tensor_points = torch.FloatTensor(points)
             tensor_colors = torch.FloatTensor(colors)
@@ -99,10 +105,17 @@ class PointCloudSegmentationDataset(Dataset):
         else:
             labels = self.labels[idx]
 
+            if self.sampling:
+                points, colors, labels = sample_points(points, colors, labels=labels)
+
             if self.augment:
+                #plot_point_cloud(points, colors, true_label=labels)
                 points, colors, labels = self.augmenter.augment(points, colors, labels)
+                #plot_point_cloud(points, colors, true_label=labels)
             
             points = transform_cloud_point(points)
+            #plot_point_cloud(points, colors, true_label=labels)
+
             tensor_points = torch.FloatTensor(points)
             tensor_colors = torch.FloatTensor(colors)
             tensor_labels = torch.LongTensor(labels)

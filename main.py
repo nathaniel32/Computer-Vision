@@ -124,7 +124,7 @@ class Main:
     
     def test(self):
         TEST_DIR = os.path.join(config.DS_ROOT, "test")
-        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR)
+        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling=True)
         test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
 
         num_classes = len(config.CLASSES)
@@ -151,12 +151,12 @@ class Main:
         VAL_DIR = os.path.join(config.DS_ROOT, "val")
 
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
-        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR)
+        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, sampling=True)
         
         logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         logger.info(f"Validation samples: {len(val_point_clouds)}")
 
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augment=True)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augment=True, sampling=True)
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=0)
