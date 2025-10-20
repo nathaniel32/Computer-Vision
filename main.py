@@ -10,6 +10,7 @@ from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_point_cloud
 from helper.loss import FocalLoss
 import helper.preds
+import helper.mesh
 import numpy as np
 
 torch.manual_seed(42)
@@ -32,12 +33,13 @@ class Main:
         save_pcd_path = os.path.join(save_dir_path, "point_cloud.pcd")
         save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
 
+        num_points = 100000
         # obj to point cloud
-        points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=config.NUM_SAMPLE_POINTS)
-        
-        #num_batches = int(np.ceil(points.shape[0] / points))
+        points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=num_points)
 
-        pred_dataset = PointCloudSegmentationDataset([points], [colors_int])
+        chunks_indices = helper.preds.get_chunks_indices(num_points, config.NUM_SAMPLE_POINTS)
+        print(points.shape)
+        print(colors_int.shape)
 
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
@@ -47,26 +49,45 @@ class Main:
 
         model.eval()
         with torch.no_grad():
-            for (t_point, t_color) in pred_dataset:
-                t_point = t_point.unsqueeze(0).to(self.device)
-                t_color = t_color.unsqueeze(0).to(self.device)
-                outputs = model(t_point, t_color)
+            comb_points = []
+            comb_color = []
+            comb_pred_label = []
 
-                point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy() # ukuran dinorm!
-                color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
-                pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
+            for indices in chunks_indices:
+                points_chunk = points[indices]
+                colors_chunk = colors_int[indices]
+                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk])
                 
-                # full
-                plot_point_cloud(points, color_plot, pred_label=pred_label, plot_tool="open3d")
-                
-                remove_item_id = 0
-                helper.preds.remove_object_part(points, pred_label, mesh_file_path, save_obj_trim_path, remove_item_id)
-                
-                # background
-                plot_point_cloud(points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label=pred_label[pred_label == remove_item_id], plot_tool="open3d")
-                
-                # target
-                plot_point_cloud(points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label=pred_label[pred_label != remove_item_id], plot_tool="open3d")
+                for (t_point, t_color) in pred_dataset:
+                    t_point = t_point.unsqueeze(0).to(self.device)
+                    t_color = t_color.unsqueeze(0).to(self.device)
+                    outputs = model(t_point, t_color)
+
+                    point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy() # ukuran dinorm!
+                    color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
+                    pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
+                    pred_label = helper.mesh.smooth_labels(points=point_plot, pred_label=pred_label)
+
+                    comb_points.extend(points_chunk)
+                    comb_color.extend(color_plot)
+                    comb_pred_label.extend(pred_label)
+
+                    #plot_point_cloud(points_chunk, color_plot, pred_label=pred_label, plot_tool="open3d")
+                    
+            comb_points = np.array(comb_points)
+            comb_color = np.array(comb_color)
+            comb_pred_label = np.array(comb_pred_label)
+            
+            plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
+            
+            keep_label_id = 1
+            helper.mesh.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
+            
+            # background
+            #plot_point_cloud(points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label=pred_label[pred_label == remove_item_id], plot_tool="open3d")
+                    
+            # target
+            #plot_point_cloud(points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label=pred_label[pred_label != remove_item_id], plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()
