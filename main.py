@@ -38,8 +38,8 @@ class Main:
         points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=num_points)
 
         chunks_indices = helper.preds.get_chunks_indices(num_points, config.NUM_SAMPLE_POINTS)
-        print(points.shape)
-        print(colors_int.shape)
+        #print(points.shape)
+        #print(colors_int.shape)
 
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
@@ -81,13 +81,15 @@ class Main:
             plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
             
             keep_label_id = 1
-            helper.mesh.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
+            helper.mesh.remove_object_part_v3(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
             
-            # background
-            #plot_point_cloud(points[pred_label == remove_item_id], color_plot[pred_label == remove_item_id], pred_label=pred_label[pred_label == remove_item_id], plot_tool="open3d")
-                    
-            # target
-            #plot_point_cloud(points[pred_label != remove_item_id], color_plot[pred_label != remove_item_id], pred_label=pred_label[pred_label != remove_item_id], plot_tool="open3d")
+            # keep
+            keep_indecies = comb_pred_label == keep_label_id
+            plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
+            
+            # remove
+            remove_indecies = comb_pred_label != keep_label_id
+            plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()
