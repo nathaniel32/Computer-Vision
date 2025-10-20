@@ -8,7 +8,7 @@ from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDat
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_point_cloud
-from helper.loss import FocalLoss
+from helper.loss import FocalLoss, compute_alpha
 import helper.preds
 import helper.mesh
 import numpy as np
@@ -195,7 +195,8 @@ class Main:
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
 
         #"""
-        criterion = FocalLoss() #nn.NLLLoss()
+        alpha = compute_alpha(train_labels=train_labels, num_classes=num_classes).to(self.device)
+        criterion = FocalLoss(alpha=alpha) #nn.NLLLoss()
         optimizer = optim.Adam(model.parameters(), lr=config.LR)
         #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)

@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-
+from collections import Counter
 
 class FocalLoss(nn.Module):
     """
@@ -165,6 +164,39 @@ class SmoothCrossEntropyLoss(nn.Module):
         
         return torch.mean(torch.sum(-true_dist * log_probs, dim=1))
 
+def compute_alpha(train_labels, num_classes, normalize=True):
+    """
+    Hitung alpha untuk Focal Loss dari dataset point cloud.
+
+    Args:
+        train_labels (list of list/array): 
+            List dari label tiap point cloud, misal [[0,1,1,...], [0,2,1,...], ...]
+        num_classes (int): Jumlah kelas (misal hand, body, head)
+        normalize (bool): Apakah alpha dinormalisasi supaya sum = 1
+
+    Returns:
+        torch.Tensor: Alpha tensor untuk Focal Loss
+    """
+    # Gabungkan semua label jadi satu list
+    all_labels = [label for pc_labels in train_labels for label in pc_labels]
+
+    # Hitung frekuensi tiap kelas
+    counts = Counter(all_labels)
+    total_points = sum(counts.values())
+    freq = {cls: counts.get(cls, 0)/total_points for cls in range(num_classes)}
+
+    # Hitung alpha = inverse frequency
+    alpha = {cls: 1/f if f > 0 else 0.0 for cls, f in freq.items()}
+
+    # Normalisasi
+    if normalize:
+        sum_alpha = sum(alpha.values())
+        if sum_alpha > 0:
+            alpha = {cls: a/sum_alpha for cls, a in alpha.items()}
+
+    # Ubah jadi tensor urut sesuai index kelas
+    alpha_tensor = torch.tensor([alpha[i] for i in range(num_classes)], dtype=torch.float32)
+    return alpha_tensor
 
 # ===== REKOMENDASI PENGGUNAAN =====
 """
