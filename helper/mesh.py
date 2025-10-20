@@ -131,7 +131,7 @@ def remove_object_part_v2(points, pred_label, mesh_file_path, save_obj_trim_path
     
     return mesh
 
-def remove_object_part_v3(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label_id, k_smooth=50, padding=0.05):
+def remove_object_part_v3(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label_id, k_smooth=20, padding=0.05):
     """
     Potong object dengan bounding box - hanya keep region yang berlabel keep_label_id
     

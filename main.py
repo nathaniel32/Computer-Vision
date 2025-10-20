@@ -81,7 +81,7 @@ class Main:
             plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
             
             keep_label_id = 1
-            helper.mesh.remove_object_part_v3(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
+            helper.mesh.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
             
             # keep
             keep_indecies = comb_pred_label == keep_label_id
