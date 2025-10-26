@@ -1,6 +1,8 @@
+import os
+
 DS_ROOT = r"D:\Datasets\medico_part_color\datasets" #"C:\Users\natha\Downloads\d"
-LOG_DIR = "result"
-RES_DIR = "result"
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result")
+RES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result")
 
 NUM_SAMPLE_POINTS = 10000
 CLASSES = [
