@@ -25,10 +25,8 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         os.makedirs(config.RES_DIR, exist_ok=True)
 
-    def predict_object(self):
-        mesh_file_path = input("Mesh Path: ").strip('"').strip()
-        texture_file_path = input("Texture Path: ").strip('"').strip()
-        save_dir_path = input("Save Dir Path: ").strip('"').strip()
+    def predict_object(self, mesh_file_path, texture_file_path, save_dir_path):
+        os.makedirs(save_dir_path, exist_ok=True)
         
         save_pcd_path = os.path.join(save_dir_path, "point_cloud.pcd")
         save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
@@ -267,6 +265,10 @@ class Main:
             elif choice == "2":
                 self.test()
             elif choice == "3":
-                self.predict_object()
+                mesh_file_path = input("Mesh Path: ").strip('"').strip()
+                texture_file_path = input("Texture Path: ").strip('"').strip()
+                save_dir_path = input("Save Dir Path: ").strip('"').strip()
+                self.predict_object(mesh_file_path, texture_file_path, save_dir_path)
 
-Main().main()
+if __name__ == "__main__":
+    Main().main()
