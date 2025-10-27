@@ -213,7 +213,7 @@ class ObjectAugmenter: # merusak norm
         if augmentation_list is None:
             augmentation_list = [
                 # Geometric augmentations
-                ('rotation', {}),
+                #('rotation', {}),
                 ('flip', {'axes': [0, 1]}),
                 #('scaling', {'scale_range': (0.85, 1.15)}),
                 #('translation', {'trans_range': 0.1}),
@@ -221,7 +221,7 @@ class ObjectAugmenter: # merusak norm
                 #('jitter', {'sigma': 0.01}),
                 
                 # Color augmentations (recommended to enable)
-                ('brightness', {'brightness_range': (0.7, 1.3)}),
+                #('brightness', {'brightness_range': (0.7, 1.3)}),
                 #('contrast', {'contrast_range': (0.8, 1.2)}),
                 #('saturation', {'saturation_range': (0.7, 1.3)}),
                 #('hue_shift', {'hue_range': (-0.05, 0.05)}),
@@ -286,7 +286,7 @@ class Augmenter:
     
     def augment(self, points, colors, labels):
         # object aug
-        #points, colors, labels = self.object_augmenter.augment(points, colors, labels)
+        points, colors, labels = self.object_augmenter.augment(points, colors, labels)
         
         # color aug
         colors = self.color_part_augmenter.augment(colors, labels)
