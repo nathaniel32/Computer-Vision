@@ -269,7 +269,7 @@ class Main:
                 mesh_file_path = input("Mesh Path: ").strip('"').strip()
                 texture_file_path = input("Texture Path: ").strip('"').strip()
                 save_dir_path = input("Save Dir Path: ").strip('"').strip()
-                self.predict_object(mesh_file_path, texture_file_path, save_dir_path)
+                self.predict_object(mesh_file_path, texture_file_path, save_dir_path, plot=True)
 
 if __name__ == "__main__":
     Main().main()
