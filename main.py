@@ -25,7 +25,7 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         os.makedirs(config.RES_DIR, exist_ok=True)
 
-    def predict_object(self, mesh_file_path, texture_file_path, save_dir_path):
+    def predict_object(self, mesh_file_path, texture_file_path, save_dir_path, plot=False):
         os.makedirs(save_dir_path, exist_ok=True)
         
         save_pcd_path = os.path.join(save_dir_path, "point_cloud.pcd")
@@ -76,18 +76,19 @@ class Main:
             comb_color = np.array(comb_color)
             comb_pred_label = np.array(comb_pred_label)
             
-            plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
-            
             keep_label_id = 1
             helper.mesh.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
             
             # keep
             keep_indecies = comb_pred_label == keep_label_id
-            plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
             
             # remove
             remove_indecies = comb_pred_label != keep_label_id
-            plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
+
+            if plot:
+                plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
+                plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
+                plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
 
     def _train(self, model, loader, criterion, optimizer):
         model.train()
