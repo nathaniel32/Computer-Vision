@@ -221,7 +221,7 @@ class ObjectAugmenter: # merusak norm
                 #('jitter', {'sigma': 0.01}),
                 
                 # Color augmentations (recommended to enable)
-                ('brightness', {'brightness_range': (0.9, 1.2)}),
+                ('brightness', {'brightness_range': (0.9, 1.1)}),
                 #('contrast', {'contrast_range': (0.8, 1.2)}),
                 #('saturation', {'saturation_range': (0.7, 1.3)}),
                 #('hue_shift', {'hue_range': (-0.05, 0.05)}),
