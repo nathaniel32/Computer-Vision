@@ -214,15 +214,15 @@ class ObjectAugmenter: # merusak norm
             augmentation_list = [
                 # Geometric augmentations
                 #('rotation', {}),
-                ('flip', {'axes': [0, 1]}),
+                ('flip', {'axes': [0, 1, 2]}),
                 #('scaling', {'scale_range': (0.85, 1.15)}),
                 #('translation', {'trans_range': 0.1}),
                 #('axis_rotation', {}),
                 #('jitter', {'sigma': 0.01}),
                 
-                # Color augmentations (recommended to enable)
+                # Color augmentations
                 ('brightness', {'brightness_range': (0.9, 1.1)}),
-                #('contrast', {'contrast_range': (0.8, 1.2)}),
+                ('contrast', {'contrast_range': (0.9, 1.1)}),
                 #('saturation', {'saturation_range': (0.7, 1.3)}),
                 #('hue_shift', {'hue_range': (-0.05, 0.05)}),
                 #('color_jitter', {'jitter_std': 0.02}),
