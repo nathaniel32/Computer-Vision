@@ -90,7 +90,7 @@ class Main:
                 plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
                 plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
 
-    def _train(self, model, loader, criterion, optimizer):
+    """ def _train(self, model, loader, criterion, optimizer):
         model.train()
         total_loss = 0
         correct = 0
@@ -118,6 +118,50 @@ class Main:
         
         avg_loss = total_loss / len(loader)
         accuracy = 100.0 * correct / total
+        return avg_loss, accuracy """
+    
+    def _train(self, model, loader, criterion, optimizer, loop=2):
+        model.train()
+        
+        avg_loss_all = 0
+        accuracy_all = 0
+        
+        for i in range(1, loop + 1):
+            total_loss = 0
+            correct = 0
+            total = 0
+            
+            for points, colors, labels in loader:
+                points, colors, labels = points.to(self.device), colors.to(self.device), labels.to(self.device)
+                optimizer.zero_grad()
+                
+                outputs = model(points, colors)
+                
+                outputs_flat = outputs.reshape(-1, outputs.shape[-1])
+                labels_flat = labels.reshape(-1)
+                
+                loss = criterion(outputs_flat, labels_flat)
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item()
+                
+                # Calculate accuracy
+                predictions = outputs_flat.argmax(dim=1)
+                correct += (predictions == labels_flat).sum().item()
+                total += labels_flat.size(0)
+            
+            epoch_loss = total_loss / len(loader)
+            epoch_acc = 100.0 * correct / total
+            
+            avg_loss_all += epoch_loss
+            accuracy_all += epoch_acc
+            
+            print(f"Epoch {i}/{loop} | Loss: {epoch_loss:.4f} | Acc: {epoch_acc:.2f}%")
+        
+        avg_loss = avg_loss_all / loop
+        accuracy = accuracy_all / loop
+        
         return avg_loss, accuracy
     
     def _eval(self, model, loader, criterion):
