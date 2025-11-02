@@ -42,7 +42,8 @@ class Main:
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
 
-        checkpoint = torch.load(self.save_model_path)
+        #checkpoint = torch.load(self.save_model_path)
+        checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
         model.load_state_dict(checkpoint['model_state_dict'])
 
         model.eval()
