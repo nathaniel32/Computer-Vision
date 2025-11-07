@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from model import PointNetSegmentation
 from helper.plot import plot_training_stats, plot_point_cloud
 from helper.loss import FocalLoss, compute_alpha
+from helper.scheduler import WarmupScheduler
 import helper.preds
 import helper.mesh
 import numpy as np
@@ -36,13 +37,10 @@ class Main:
         points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=num_points)
 
         chunks_indices = helper.preds.get_chunks_indices(num_points, config.NUM_SAMPLE_POINTS)
-        #print(points.shape)
-        #print(colors_int.shape)
 
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
 
-        #checkpoint = torch.load(self.save_model_path)
         checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
         model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -62,7 +60,7 @@ class Main:
                     t_color = t_color.unsqueeze(0).to(self.device)
                     outputs = model(t_point, t_color)
 
-                    point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy() # ukuran dinorm!
+                    point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy()
                     color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
                     pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                     pred_label = helper.mesh.smooth_labels(points=point_plot, pred_label=pred_label)
@@ -70,8 +68,6 @@ class Main:
                     comb_points.extend(points_chunk)
                     comb_color.extend(color_plot)
                     comb_pred_label.extend(pred_label)
-
-                    #plot_point_cloud(points_chunk, color_plot, pred_label=pred_label, plot_tool="open3d")
                     
             comb_points = np.array(comb_points)
             comb_color = np.array(comb_color)
@@ -90,36 +86,6 @@ class Main:
                 plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
                 plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
                 plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
-
-    """ def _train(self, model, loader, criterion, optimizer):
-        model.train()
-        total_loss = 0
-        correct = 0
-        total = 0
-        
-        for points, colors, labels in loader:
-            points, colors, labels = points.to(self.device), colors.to(self.device), labels.to(self.device)
-            optimizer.zero_grad()
-            outputs = model(points, colors)
-            
-            # Reshape for loss calculation
-            outputs_flat = outputs.reshape(-1, outputs.shape[-1])
-            labels_flat = labels.reshape(-1)
-            
-            loss = criterion(outputs_flat, labels_flat)
-            loss.backward()
-            optimizer.step()
-            
-            total_loss += loss.item()
-            
-            # Calculate accuracy
-            predictions = outputs_flat.argmax(dim=1)
-            correct += (predictions == labels_flat).sum().item()
-            total += labels_flat.size(0)
-        
-        avg_loss = total_loss / len(loader)
-        accuracy = 100.0 * correct / total
-        return avg_loss, accuracy """
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()
@@ -216,7 +182,7 @@ class Main:
                 
                 plot_point_cloud(point_plot, color_plot, pred_label=pred_label, true_label=label)
 
-    def train(self, val_interval=1):
+    def train(self, val_interval=1, warmup_epochs=5):
         TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
         VAL_DIR = os.path.join(config.DS_ROOT, "val")
 
@@ -238,19 +204,39 @@ class Main:
         num_classes = len(config.CLASSES)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
 
-        #"""
         alpha = compute_alpha(train_labels=train_labels, num_classes=num_classes).to(self.device)
-        criterion = FocalLoss(alpha=alpha) #nn.NLLLoss()
+        criterion = FocalLoss(alpha=alpha)
         optimizer = optim.Adam(model.parameters(), lr=config.LR)
-        #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
+        
+        # Initialize warm-up scheduler
+        warmup_scheduler = WarmupScheduler(
+            optimizer=optimizer,
+            warmup_epochs=warmup_epochs,
+            initial_lr=config.LR * 0.1,  # Start from 10% of target LR
+            target_lr=config.LR
+        )
+        
+        # Main scheduler (applied after warm-up)
+        main_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
+        )
         
         patience_counter = 0
         best_val_acc = 0.0
         train_losses, val_losses, train_accuracies, val_accuracies = [], [], [], []
+        
+        logger.info(f"\n=== Training with {warmup_epochs} epochs warm-up ===")
+        logger.info(f"Initial LR: {config.LR * 0.1:.2e} -> Target LR: {config.LR:.2e}")
+        
         for epoch in range(config.EPOCHS):
             logger.info(f'\nEpoch {epoch+1}/{config.EPOCHS}')
             logger.info('-' * 60)
+            
+            # Apply warm-up for first few epochs
+            if epoch < warmup_epochs:
+                warmup_scheduler.step()
+                current_lr = warmup_scheduler.get_lr()
+                logger.info(f'Warm-up LR: {current_lr:.2e}')
             
             train_loss, train_acc = self._train(model, train_loader, criterion, optimizer)
             val_loss, val_acc = self._eval(model, val_loader, criterion)
@@ -263,36 +249,37 @@ class Main:
             logger.info(f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%')
             logger.info(f'Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%')
             
-            # Save best model
-            if val_acc > best_val_acc:
-                patience_counter = 0
-                best_val_acc = val_acc
-                torch.save({
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'epoch': epoch,
-                    'val_acc': val_acc,
-                    'num_classes': num_classes
-                }, self.save_model_path)
-                logger.info(f'Saved best model with validation accuracy: {val_acc:.2f}%')
-            else:
-                patience_counter += 1
-                logger.info(f"- Patience: {patience_counter}/{config.PATIENCE}")
+            # after warm-up period
+            if epoch >= warmup_epochs:
+                # Save best model
+                if val_acc > best_val_acc:
+                    patience_counter = 0
+                    best_val_acc = val_acc
+                    torch.save({
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'epoch': epoch,
+                        'val_acc': val_acc,
+                        'num_classes': num_classes
+                    }, self.save_model_path)
+                    logger.info(f'Saved best model with validation accuracy: {val_acc:.2f}%')
+                else:
+                    patience_counter += 1
+                    logger.info(f"- Patience: {patience_counter}/{config.PATIENCE}")
 
-                if patience_counter >= config.PATIENCE:
-                    logger.info("= Early stopping triggered!")
-                    break
+                    if patience_counter >= config.PATIENCE:
+                        logger.info("= Early stopping triggered!")
+                        break
             
-            #scheduler.step()
-            scheduler.step(val_loss)
+                # Apply main scheduler
+                main_scheduler.step(val_loss)
+                current_lr = optimizer.param_groups[0]['lr']
+                logger.info(f'Current LR: {current_lr:.2e}')
 
         logger.info(f"\n=== Training Complete ===")
         logger.info(f"Best Validation Accuracy: {best_val_acc:.2f}%")
 
         plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies)
-        #"""
-        
-        #self.test()
 
     def main(self):
         while True:
