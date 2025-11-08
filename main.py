@@ -191,7 +191,7 @@ class Main:
                 
                 plot_point_cloud(point_plot, color_plot, pred_label=pred_label, true_label=label)
 
-    def train(self, val_interval=1, warmup_epochs=5):
+    """ def train(self, val_interval=1, warmup_epochs=5):
         TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
         VAL_DIR = os.path.join(config.DS_ROOT, "val")
 
@@ -289,7 +289,82 @@ class Main:
         logger.info(f"\n=== Training Complete ===")
         logger.info(f"Best Validation Accuracy: {best_val_acc:.2f}%")
 
+        plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies) """
+    
+    def train(self, val_interval=1, warmup_epochs=5, resume=False):
+        if not resume:
+            logger.clear()
+        
+        TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
+        VAL_DIR = os.path.join(config.DS_ROOT, "val")
+        train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
+        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, sampling=True)
+        
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augment=True, sampling=True)
+        val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
+        train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=0)
+        val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=0)
+        num_classes = len(config.CLASSES)
+        model = PointNetSegmentation(num_classes=num_classes).to(self.device)
+        alpha = compute_alpha(train_labels=train_labels, num_classes=num_classes).to(self.device)
+        criterion = FocalLoss(alpha=alpha)
+        optimizer = optim.Adam(model.parameters(), lr=config.LR)
+        
+        start_epoch = 0
+        best_val_acc = 0.0
+        if resume and os.path.exists(self.save_model_path):
+            checkpoint = torch.load(self.save_model_path, map_location=self.device)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            start_epoch = checkpoint['epoch'] + 1
+            best_val_acc = checkpoint['val_acc']
+            logger.info(f"Resuming from epoch {start_epoch}, best val acc: {best_val_acc:.2f}%")
+        
+        warmup_scheduler = WarmupScheduler(
+            optimizer=optimizer,
+            warmup_epochs=warmup_epochs,
+            initial_lr=config.LR * 0.1,
+            target_lr=config.LR
+        )
+        main_scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6
+        )
+        patience_counter = 0
+        train_losses, val_losses, train_accuracies, val_accuracies = [], [], [], []
+        
+        for epoch in range(start_epoch, config.EPOCHS):
+            if epoch < warmup_epochs:
+                warmup_scheduler.step()
+            
+            train_loss, train_acc = self._train(model, train_loader, criterion, optimizer)
+            val_loss, val_acc = self._eval(model, val_loader, criterion)
+            
+            train_losses.append(train_loss)
+            val_losses.append(val_loss)
+            train_accuracies.append(train_acc)
+            val_accuracies.append(val_acc)
+            
+            if epoch >= warmup_epochs:
+                if val_acc > best_val_acc:
+                    best_val_acc = val_acc
+                    patience_counter = 0
+                    torch.save({
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'epoch': epoch,
+                        'val_acc': val_acc,
+                        'num_classes': num_classes,
+                        'num_points': config.NUM_SAMPLE_POINTS
+                    }, self.save_model_path)
+                else:
+                    patience_counter += 1
+                    if patience_counter >= config.PATIENCE:
+                        logger.info("Early stopping triggered!")
+                        break
+                main_scheduler.step(val_loss)
+        
         plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies)
+        logger.info(f"Training complete. Best val acc: {best_val_acc:.2f}%")
 
     def main(self):
         while True:
@@ -303,8 +378,8 @@ class Main:
             if not choice:
                 break
             elif choice == "1":
-                logger.clear()
-                self.train()
+                resume = input("Resume training? (y/n): ").strip().lower() == 'y'
+                self.train(resume=resume)
             elif choice == "2":
                 self.test()
             elif choice == "3":

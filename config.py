@@ -10,7 +10,7 @@ CLASSES = [
     {"label": "hand", "color": "#00FF00"}
 ]
 
-SEED = 100
+SEED = 42
 
 TARGET_CLASS_ID = 1
 
