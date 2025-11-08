@@ -26,23 +26,30 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         os.makedirs(config.RES_DIR, exist_ok=True)
 
-    def predict_object(self, mesh_file_path, texture_file_path, save_dir_path, plot=False):
+    def predict_object(self, mesh_file_path, texture_file_path, save_dir_path, plot=False, target_num_points=100000):
         os.makedirs(save_dir_path, exist_ok=True)
         
         save_pcd_path = os.path.join(save_dir_path, "point_cloud.pcd")
         save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
 
-        num_points = 100000
-        # obj to point cloud
-        points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=num_points)
-
-        chunks_indices = helper.preds.get_chunks_indices(num_points, config.NUM_SAMPLE_POINTS)
-
-        num_classes = len(config.CLASSES)
-        model = PointNetSegmentation(num_classes=num_classes).to(self.device)
-
         checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
-        model.load_state_dict(checkpoint['model_state_dict'])
+        c_model_state_dict = checkpoint['model_state_dict']
+        c_num_classes = checkpoint['num_classes']
+        c_num_points = checkpoint['num_points']
+        c_val_acc = checkpoint['val_acc']
+        c_epoch = checkpoint['epoch']
+
+        print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}")
+
+        # obj to point cloud
+        points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
+
+        chunks_indices = helper.preds.get_chunks_indices(target_num_points, c_num_points)
+
+        model = PointNetSegmentation(num_classes=c_num_classes).to(self.device)
+
+        
+        model.load_state_dict(c_model_state_dict)
 
         model.eval()
         with torch.no_grad():
@@ -260,7 +267,8 @@ class Main:
                         'optimizer_state_dict': optimizer.state_dict(),
                         'epoch': epoch,
                         'val_acc': val_acc,
-                        'num_classes': num_classes
+                        'num_classes': num_classes,
+                        'num_points': config.NUM_SAMPLE_POINTS
                     }, self.save_model_path)
                     logger.info(f'Saved best model with validation accuracy: {val_acc:.2f}%')
                 else:
