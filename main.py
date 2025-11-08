@@ -272,7 +272,7 @@ class Main:
             logger.info(f'\nEpoch {epoch+1}/{config.EPOCHS}')
             logger.info('-' * 60)
             
-            # Apply warm-up (only for fresh training, skip if resumed)
+            # Apply warm-up
             if not resume and epoch < warmup_epochs:
                 warmup_scheduler.step()
                 current_lr = warmup_scheduler.get_lr()
@@ -289,7 +289,7 @@ class Main:
             logger.info(f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%')
             logger.info(f'Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%')
             
-            # After warm-up period (or if resumed)
+            # After warm-up period
             if resume or epoch >= warmup_epochs:
                 # Save best model
                 if val_acc > best_val_acc:
