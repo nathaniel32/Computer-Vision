@@ -48,7 +48,6 @@ class Main:
 
         model = PointNetSegmentation(num_classes=c_num_classes).to(self.device)
 
-        
         model.load_state_dict(c_model_state_dict)
 
         model.eval()
