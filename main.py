@@ -13,10 +13,13 @@ from helper.scheduler import WarmupScheduler
 import helper.preds
 import helper.mesh
 import numpy as np
+import random
 
-torch.manual_seed(42)
-torch.cuda.manual_seed(42)
-torch.cuda.manual_seed_all(42)
+random.seed(config.SEED)
+np.random.seed(config.SEED)
+torch.manual_seed(config.SEED)
+torch.cuda.manual_seed(config.SEED)
+torch.cuda.manual_seed_all(config.SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 

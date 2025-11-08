@@ -10,6 +10,8 @@ CLASSES = [
     {"label": "hand", "color": "#00FF00"}
 ]
 
+SEED = 100
+
 TARGET_CLASS_ID = 1
 
 EPOCHS = 2000
