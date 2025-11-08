@@ -5,7 +5,7 @@ import numpy as np
 
 # ============= BARYCENTRIC COORDINATES =============
 def barycentric_coords(p, tri):
-    """Hitung koordinat barycentric untuk interpolasi UV"""
+    """Calculate barycentric coordinates for UV interpolation"""
     v0, v1, v2 = tri
     v0v1 = v1 - v0
     v0v2 = v2 - v0
@@ -27,16 +27,13 @@ def barycentric_coords(p, tri):
 
 # ============= RGB TO INTEGER (Compatible dengan THREE.PCDLoader) =============
 def rgb_to_int(r, g, b):
-    """
-    Konversi RGB (0-255) ke integer format THREE.PCDLoader
-    Formula: b + 256*g + 256*256*r
-    """
+    """ Formula: b + 256*g + 256*256*r """
+
     return int(b) + 256 * int(g) + 256 * 256 * int(r)
 
 def int_to_rgb(rgb_int):
-    """
-    Konversi integer RGB kembali ke R, G, B
-    """
+    """ Convert RGB integers to R, G, B """
+    
     b = rgb_int & 0xFF
     g = (rgb_int >> 8) & 0xFF
     r = (rgb_int >> 16) & 0xFF
@@ -44,10 +41,8 @@ def int_to_rgb(rgb_int):
 
 # ============= SAVE POINT CLOUD DENGAN RGB INTEGER =============
 def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
-    """
-    Simpan point cloud dari mesh dengan texture ke PCD format (ASCII)
-    RGB disimpan sebagai single integer field (kompatibel THREE.PCDLoader)
-    """
+    """ Save the point cloud from the mesh with texture in PCD format (ASCII) """
+    
     print("Loading mesh...")
     mesh = trimesh.load(mesh_path, force='mesh')
     
@@ -91,7 +86,6 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
     rgb_ints = np.array(rgb_ints, dtype=np.uint32)
     colors_rgb = np.array(colors_rgb, dtype=np.uint8)
     
-    # Tulis ke PCD file (ASCII format, kompatibel THREE.PCDLoader)
     print("Writing PCD file (ASCII format)...")
     with open(save_path, 'w') as f:
         # Header
@@ -112,19 +106,14 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
             rgb = rgb_ints[i]
             f.write(f"{x} {y} {z} {rgb}\n")
     
-    print(f"✓ Point cloud disimpan ke: {save_path}")
-    print(f"  Points: {len(points)}")
-    print(f"  Format: PCD ASCII dengan RGB integer (kompatibel THREE.PCDLoader)")
-    print(f"  RGB conversion: b + 256*g + 256*256*r")
+    print(f"- Point cloud saved to: {save_path}")
+    print(f"- Points: {len(points)}")
     
     return points, rgb_ints, colors_rgb
 
 # ============= READ POINT CLOUD =============
 def read_pointcloud_pcd(pcd_path):
-    """
-    Baca PCD file (ASCII) dan return points + RGB integer + RGB decomposed
-    """
-    print(f"\nReading point cloud dari: {pcd_path}")
+    print(f"\nReading point cloud from: {pcd_path}")
     
     with open(pcd_path, 'r') as f:
         lines = f.readlines()
@@ -156,10 +145,9 @@ def read_pointcloud_pcd(pcd_path):
     rgb_ints = np.array(rgb_ints, dtype=np.uint32)
     colors_rgb = np.array(colors_rgb, dtype=np.uint8)
     
-    print(f"✓ Loaded {len(points)} points")
-    print(f"  Has RGB: True")
-    print(f"Sample RGB integer: {rgb_ints[:5]}")
-    print(f"Sample RGB decomposed:\n{colors_rgb[:5]}")
+    print(f"- Loaded {len(points)} points")
+    print(f"- Sample RGB integer: {rgb_ints[:5]}")
+    print(f"- Sample RGB decomposed:\n{colors_rgb[:5]}")
     
     return points, rgb_ints, colors_rgb
 

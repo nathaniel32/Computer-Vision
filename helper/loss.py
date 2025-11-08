@@ -4,10 +4,6 @@ import torch.nn.functional as F
 from collections import Counter
 
 class FocalLoss(nn.Module):
-    """
-    Focal Loss untuk mengatasi class imbalance
-    Lebih fokus pada sampel yang sulit (hard examples)
-    """
     def __init__(self, alpha=None, gamma=2.0, reduction='mean'):
         super(FocalLoss, self).__init__()
         self.alpha = alpha
@@ -15,11 +11,6 @@ class FocalLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, inputs, targets):
-        """
-        Args:
-            inputs: (B*N, C) logits dari model
-            targets: (B*N,) ground truth labels
-        """
         ce_loss = F.cross_entropy(inputs, targets, reduction='none')
         p = torch.exp(-ce_loss)
         focal_loss = (1 - p) ** self.gamma * ce_loss
@@ -39,10 +30,6 @@ class FocalLoss(nn.Module):
 
 
 class DiceLoss(nn.Module):
-    """
-    Dice Loss untuk semantic segmentation
-    Bagus untuk menangani class imbalance
-    """
     def __init__(self, num_classes, smooth=1.0, reduction='mean'):
         super(DiceLoss, self).__init__()
         self.num_classes = num_classes
@@ -50,11 +37,6 @@ class DiceLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, inputs, targets):
-        """
-        Args:
-            inputs: (B*N, C) logits dari model
-            targets: (B*N,) ground truth labels
-        """
         inputs = F.softmax(inputs, dim=1)
         
         dice_loss = 0.0
@@ -72,10 +54,6 @@ class DiceLoss(nn.Module):
 
 
 class CombinedLoss(nn.Module):
-    """
-    Kombinasi CE Loss + Dice Loss + Focal Loss
-    Menggabungkan kekuatan dari berbagai loss function
-    """
     def __init__(self, num_classes, alpha_ce=0.5, alpha_dice=0.3, alpha_focal=0.2, 
                  focal_gamma=2.0, dice_smooth=1.0):
         super(CombinedLoss, self).__init__()
@@ -99,10 +77,6 @@ class CombinedLoss(nn.Module):
 
 
 class WeightedCrossEntropyLoss(nn.Module):
-    """
-    Cross Entropy Loss dengan class weights
-    Untuk menangani class imbalance
-    """
     def __init__(self, weights=None, reduction='mean'):
         super(WeightedCrossEntropyLoss, self).__init__()
         self.weights = weights
@@ -114,10 +88,6 @@ class WeightedCrossEntropyLoss(nn.Module):
 
 
 class OhemCrossEntropyLoss(nn.Module):
-    """
-    Online Hard Example Mining (OHEM) Loss
-    Fokus pada sampel yang paling sulit (hard negatives)
-    """
     def __init__(self, num_classes, thresh=0.6, min_keep=100000):
         super(OhemCrossEntropyLoss, self).__init__()
         self.num_classes = num_classes
@@ -131,22 +101,18 @@ class OhemCrossEntropyLoss(nn.Module):
         # Sort losses
         sorted_loss, idx = torch.sort(loss, descending=True)
         
-        # Tentukan threshold
+        # Determine the threshold
         if sorted_loss[self.min_keep] > self.thresh:
             threshold = self.thresh
         else:
             threshold = sorted_loss[self.min_keep]
         
-        # Keep hanya hard examples
+        # Keep only hard examples
         hard_mask = loss > threshold
         return loss[hard_mask].mean() if hard_mask.sum() > 0 else loss.mean()
 
 
 class SmoothCrossEntropyLoss(nn.Module):
-    """
-    Label Smoothing + Cross Entropy Loss
-    Mencegah overconfidence dan overfitting
-    """
     def __init__(self, num_classes, smoothing=0.1):
         super(SmoothCrossEntropyLoss, self).__init__()
         self.smoothing = smoothing
@@ -165,58 +131,23 @@ class SmoothCrossEntropyLoss(nn.Module):
         return torch.mean(torch.sum(-true_dist * log_probs, dim=1))
 
 def compute_alpha(train_labels, num_classes, normalize=True):
-    """
-    Hitung alpha untuk Focal Loss dari dataset point cloud.
-
-    Args:
-        train_labels (list of list/array): 
-            List dari label tiap point cloud, misal [[0,1,1,...], [0,2,1,...], ...]
-        num_classes (int): Jumlah kelas (misal hand, body, head)
-        normalize (bool): Apakah alpha dinormalisasi supaya sum = 1
-
-    Returns:
-        torch.Tensor: Alpha tensor untuk Focal Loss
-    """
-    # Gabungkan semua label jadi satu list
+    # Combine all labels into one list
     all_labels = [label for pc_labels in train_labels for label in pc_labels]
 
-    # Hitung frekuensi tiap kelas
+    # Calculate the frequency of each class
     counts = Counter(all_labels)
     total_points = sum(counts.values())
     freq = {cls: counts.get(cls, 0)/total_points for cls in range(num_classes)}
 
-    # Hitung alpha = inverse frequency
+    # Calculate alpha = inverse frequency
     alpha = {cls: 1/f if f > 0 else 0.0 for cls, f in freq.items()}
 
-    # Normalisasi
+    # Normalization
     if normalize:
         sum_alpha = sum(alpha.values())
         if sum_alpha > 0:
             alpha = {cls: a/sum_alpha for cls, a in alpha.items()}
 
-    # Ubah jadi tensor urut sesuai index kelas
+    # Convert it to an ordered tensor according to the class index
     alpha_tensor = torch.tensor([alpha[i] for i in range(num_classes)], dtype=torch.float32)
     return alpha_tensor
-
-# ===== REKOMENDASI PENGGUNAAN =====
-"""
-Pilih loss function berdasarkan kasus:
-
-1. **Balanced Dataset** → CrossEntropyLoss (default)
-   criterion = nn.CrossEntropyLoss()
-
-2. **Imbalanced Dataset** → FocalLoss atau WeightedCrossEntropyLoss
-   criterion = FocalLoss(gamma=2.0)
-   # atau
-   class_weights = torch.tensor([0.5, 1.0, 2.0])  # adjust sesuai distribusi
-   criterion = WeightedCrossEntropyLoss(weights=class_weights)
-
-3. **Best Performance** → CombinedLoss
-   criterion = CombinedLoss(num_classes=len(config.CLASSES))
-
-4. **Hard Negatives Mining** → OhemCrossEntropyLoss
-   criterion = OhemCrossEntropyLoss(num_classes=len(config.CLASSES))
-
-5. **Prevent Overfitting** → SmoothCrossEntropyLoss
-   criterion = SmoothCrossEntropyLoss(num_classes=len(config.CLASSES), smoothing=0.1)
-"""

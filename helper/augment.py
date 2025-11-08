@@ -4,9 +4,7 @@ from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 import config
 import random
 
-class ColorPartAugmenter: #tidak merusak norm
-    """Augmentasi warna point cloud"""
-    
+class ColorPartAugmenter:
     def __init__(self, target_label=config.TARGET_CLASS_ID, p_aug=0.7):
         self.target_label = target_label
         self.p_aug = p_aug
@@ -28,7 +26,7 @@ class ColorPartAugmenter: #tidak merusak norm
         if use_negative:
             colors_aug[mask] = 1.0 - colors_aug[mask]
         
-        hue = random.uniform(0, 1.0)  # Hue dalam range [0, 1]
+        hue = random.uniform(0, 1.0)  # Hue range [0, 1]
         
         hsv = rgb_to_hsv(colors_aug[mask])
         hsv[:, 0] = hue
@@ -47,7 +45,6 @@ class ColorPartAugmenter: #tidak merusak norm
         return self._apply_hue_shift(colors, labels, use_negative=True)
     
     def get_augment_list(self):
-        """Return list augmentasi"""
         return [
             self.negative,
             self.negative_to_color,
@@ -61,15 +58,13 @@ class ColorPartAugmenter: #tidak merusak norm
         if not self._should_augment():
             return colors
         
-        # Random color augmentasi
+        # Random color aug
         color_idx = np.random.randint(0, len(self.color_augment_list))
         color_aug_func = self.color_augment_list[color_idx]
         aug_colors = color_aug_func(colors, labels)
         return aug_colors
 
-class ObjectAugmenter: # merusak norm
-    """Augmentasi geometri dan warna point cloud"""
-    
+class ObjectAugmenter:
     def __init__(self, p_aug=0.7):
         self.p_aug = p_aug
     
@@ -148,7 +143,7 @@ class ObjectAugmenter: # merusak norm
 
     # ===== COLOR AUGMENTATIONS =====
     def random_brightness(self, points, colors, labels, brightness_range=(0.7, 1.3)):
-        """Adjust brightness dengan multiplier"""
+        """Adjust brightness with multiplier"""
         if not self._should_augment():
             return points, colors, labels
 
@@ -157,7 +152,7 @@ class ObjectAugmenter: # merusak norm
         return points, aug_colors, labels
 
     def random_contrast(self, points, colors, labels, contrast_range=(0.8, 1.2)):
-        """Adjust contrast dengan mean sebagai anchor"""
+        """Adjust contrast with mean as anchor"""
         if not self._should_augment():
             return points, colors, labels
 
@@ -168,7 +163,7 @@ class ObjectAugmenter: # merusak norm
         return points, aug_colors, labels
 
     def random_saturation(self, points, colors, labels, saturation_range=(0.7, 1.3)):
-        """Adjust saturation di HSV space"""
+        """Adjust saturation in HSV space"""
         if not self._should_augment():
             return points, colors, labels
 
@@ -179,7 +174,7 @@ class ObjectAugmenter: # merusak norm
         return points, aug_colors, labels
 
     def random_hue_shift(self, points, colors, labels, hue_range=(-0.1, 0.1)):
-        """Shift hue di HSV space"""
+        """Shift hue in HSV space"""
         if not self._should_augment():
             return points, colors, labels
 
@@ -190,7 +185,7 @@ class ObjectAugmenter: # merusak norm
         return points, aug_colors, labels
 
     def random_color_jitter(self, points, colors, labels, jitter_std=0.02):
-        """Add random noise ke RGB channels"""
+        """Add random noise to RGB channels"""
         if not self._should_augment():
             return points, colors, labels
 
@@ -199,7 +194,7 @@ class ObjectAugmenter: # merusak norm
         return points, aug_colors, labels
 
     def random_gamma_correction(self, points, colors, labels, gamma_range=(0.8, 1.2)):
-        """Apply gamma correction untuk simulate lighting changes"""
+        """Apply gamma correction to simulate lighting changes"""
         if not self._should_augment():
             return points, colors, labels
 
@@ -209,7 +204,7 @@ class ObjectAugmenter: # merusak norm
         return points, aug_colors, labels
 
     def augment(self, points, colors, labels, augmentation_list=None):
-        """Apply augmentasi geometri dan warna sesuai list"""
+        """Apply augmentasi"""
         if augmentation_list is None:
             augmentation_list = [
                 # Geometric augmentations

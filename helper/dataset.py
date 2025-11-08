@@ -11,7 +11,7 @@ from helper.plot import plot_point_cloud
 
 def sample_points(points, colors, labels=None):
     if len(points) < config.NUM_SAMPLE_POINTS:
-        raise ValueError(f"Jumlah titik ({len(points)}) lebih sedikit daripada NUM_SAMPLE_POINTS ({config.NUM_SAMPLE_POINTS})")
+        raise ValueError(f"the number of points is less than NUM_SAMPLE_POINTS {len(points)}/{config.NUM_SAMPLE_POINTS}")
     
     idx = np.random.choice(len(points), config.NUM_SAMPLE_POINTS, replace=False)
     sampled_points = points[idx]
@@ -24,7 +24,7 @@ def sample_points(points, colors, labels=None):
         return sampled_points, sampled_colors, sampled_labels
 
 def transform_color(color_int):
-    # Konversi RGB dari uint32 ke 3 channel (0-1 normalized)
+    # RGB conversion from uint32 to 3 channels (0-1 normalized)
     colors = np.zeros((len(color_int), 3), dtype=np.float32)
     colors[:, 0] = ((color_int >> 16) & 0xFF) / 255.0  # R
     colors[:, 1] = ((color_int >> 8) & 0xFF) / 255.0   # G
@@ -32,7 +32,7 @@ def transform_color(color_int):
     return colors
 
 def transform_cloud_point(points):
-    # Normalisasi point cloud
+    # Point cloud normalization
     norm_points = points.copy()
     norm_points -= np.mean(norm_points, axis=0)
     norm_points /= np.max(np.linalg.norm(norm_points, axis=1))

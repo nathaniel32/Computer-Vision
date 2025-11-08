@@ -30,7 +30,7 @@ def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuraci
 
 def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, plot_tool="matplotlib"):
     if plot_tool == "matplotlib":
-        # Tentukan jumlah subplot
+        # Determine the number of subplots
         num_subplots = 1
         if true_label is not None:
             num_subplots += 1
@@ -40,7 +40,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
         fig = plt.figure(figsize=(7 * num_subplots, 6))
         subplot_idx = 1
         
-        # Original Point Cloud dengan Color
+        # Original Point Cloud with Color
         ax = fig.add_subplot(1, num_subplots, subplot_idx, projection='3d')
         ax.scatter(point_cloud[:, 0], point_cloud[:, 1], point_cloud[:, 2], 
                     c=color_plot, s=10, alpha=0.6)
@@ -50,7 +50,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
         ax.set_zlabel('Z')
         subplot_idx += 1
         
-        # True Labels (jika true_label tidak None)
+        # True Labels
         if true_label is not None:
             df_true = pd.DataFrame({
                 'x': point_cloud[:, 0], 
@@ -72,7 +72,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
             ax.legend()
             subplot_idx += 1
         
-        # Predicted Labels (jika pred_label tidak None)
+        # Predicted Labels
         if pred_label is not None:
             df_pred = pd.DataFrame({
                 'x': point_cloud[:, 0], 
@@ -104,7 +104,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
         
         visualizers = []
         
-        # Original Point Cloud dengan Color
+        # Original Point Cloud with Color
         pcd_original = o3d.geometry.PointCloud()
         pcd_original.points = o3d.utility.Vector3dVector(point_cloud)
         pcd_original.colors = o3d.utility.Vector3dVector(color_plot)
@@ -116,7 +116,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
         vis_original.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
         visualizers.append(vis_original)
         
-        # True Labels (jika true_label tidak None)
+        # True Labels
         if true_label is not None:
             pcd_true = o3d.geometry.PointCloud()
             pcd_true.points = o3d.utility.Vector3dVector(point_cloud)
@@ -137,7 +137,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
             vis_true.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
             visualizers.append(vis_true)
         
-        # Predicted Labels (jika pred_label tidak None)
+        # Predicted Labels
         if pred_label is not None:
             pcd_pred = o3d.geometry.PointCloud()
             pcd_pred.points = o3d.utility.Vector3dVector(point_cloud)
