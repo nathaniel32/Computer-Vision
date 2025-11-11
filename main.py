@@ -1,17 +1,16 @@
 import torch
 import torch.optim as optim
-import torch.nn as nn
 import os
 import config
-from helper.log import logger
-from helper.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset
+from helper.utils.log import logger
+from helper.train.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
-from helper.plot import plot_training_stats, plot_point_cloud
-from helper.loss import FocalLoss, compute_alpha
-from helper.scheduler import WarmupScheduler
-import helper.preds
-import helper.mesh
+from helper.utils.plot import plot_training_stats, plot_point_cloud
+from helper.train.loss import FocalLoss, compute_alpha
+from helper.train.scheduler import WarmupScheduler
+import helper.mesh.mesh_remover
+import helper.mesh.mesh_to_pointclouds
 import numpy as np
 import random
 
@@ -45,9 +44,9 @@ class Main:
         print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}")
 
         # obj to point cloud
-        points, colors_int, colors_rgb = helper.preds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
+        points, colors_int, colors_rgb = helper.mesh.mesh_to_pointclouds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
 
-        chunks_indices = helper.preds.get_chunks_indices(target_num_points, c_num_points)
+        chunks_indices = helper.mesh.mesh_to_pointclouds.get_chunks_indices(target_num_points, c_num_points)
 
         model = PointNetSegmentation(num_classes=c_num_classes).to(self.device)
 
@@ -72,7 +71,7 @@ class Main:
                     point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy()
                     color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
                     pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
-                    pred_label = helper.mesh.smooth_labels(points=point_plot, pred_label=pred_label)
+                    pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label)
 
                     comb_points.extend(points_chunk)
                     comb_color.extend(color_plot)
@@ -83,7 +82,7 @@ class Main:
             comb_pred_label = np.array(comb_pred_label)
             
             keep_label_id = 1
-            helper.mesh.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
+            helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
             
             # keep
             keep_indecies = comb_pred_label == keep_label_id

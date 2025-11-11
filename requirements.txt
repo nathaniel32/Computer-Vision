@@ -1,0 +1,9 @@
+#--extra-index-url https://download.pytorch.org/whl/cu129
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+tqdm
+open3d
+scipy
+matplotlib
+pandas
+trimesh

@@ -6,8 +6,8 @@ import numpy as np
 from glob import glob
 import os
 import config
-from helper.augment import Augmenter
-from helper.plot import plot_point_cloud
+from helper.train.augment import Augmenter
+from helper.utils.plot import plot_point_cloud
 
 def sample_points(points, colors, labels=None):
     if len(points) < config.NUM_SAMPLE_POINTS:
