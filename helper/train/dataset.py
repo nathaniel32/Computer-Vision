@@ -1,13 +1,11 @@
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
-import open3d as o3d
 import numpy as np
 from glob import glob
 import os
 import config
 from helper.train.augment import Augmenter
-from helper.utils.plot import plot_point_cloud
 
 def sample_points(points, colors, labels=None):
     if len(points) < config.NUM_SAMPLE_POINTS:
@@ -44,11 +42,7 @@ def load_pcd_with_point_labels(directory, sampling=False):
     
     print(f"\nLoading from {directory}, found {len(pcd_files)} files")
     
-    for pcd_file in tqdm(pcd_files, desc=f"Loading {os.path.basename(directory)}"):
-        pcd = o3d.io.read_point_cloud(pcd_file, remove_nan_points=True)
-        if not pcd.has_points():
-            continue
-        
+    for pcd_file in tqdm(pcd_files, desc=f"Loading {os.path.basename(directory)}"):        
         with open(pcd_file, 'r') as f:
             lines = f.readlines()
         
