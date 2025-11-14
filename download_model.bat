@@ -1,5 +1,5 @@
 @echo off
-set URL=https://storage.googleapis.com/drive-bulk-export-anonymous/20251112T011258.505Z/4133399871716478688/fd025c1c-5adb-4625-b744-156a86d7fd76/1/07f4fb01-c58d-4a97-a734-e4a6b3dd22ec
+set URL=https://github.com/nathaniel32/Computer-Vision/releases/download/v1/best_model.zip
 set ZIP=segmentation_model_tmp.zip
 set DEST=.
 

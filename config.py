@@ -1,6 +1,6 @@
 import os
 
-DS_ROOT = r"D:\Datasets\medico_part_color\datasets\mix"
+DS_ROOT = r"D:\Datasets\3d\medico_part_color\datasets\latest"
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result")
 RES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result")
 
