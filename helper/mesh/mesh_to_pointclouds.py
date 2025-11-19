@@ -228,7 +228,7 @@ def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points=100000, visu
         if visualize:
             visualize_pointcloud(points, colors_rgb)
 
-        return points, rgb_ints, colors_rgb
+        return points, rgb_ints, colors_rgb, mesh_file, tex_file, ao_file, norm_file
 
     except Exception as e:
         raise RuntimeError(f"Error processing folder: {input_dir}") from e
