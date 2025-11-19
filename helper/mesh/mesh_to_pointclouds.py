@@ -55,7 +55,9 @@ def _int_to_rgb(rgb_int):
 
 
 # ============= LOAD TEXTURE =============
-def load_texture_maps(foldername, filenames):
+def load_texture_maps(foldername):
+    filenames = os.listdir(foldername)
+
     mesh_file = None
     tex_file = None
     ao_file = None
@@ -206,9 +208,7 @@ def visualize_pointcloud(points, colors_rgb):
         print("- Open3D not installed, skipping visualization")
 
 def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points=100000, visualize=False):
-    filenames = os.listdir(input_dir)
-    
-    mesh_file, tex_file, ao_file, norm_file = load_texture_maps(input_dir, filenames)
+    mesh_file, tex_file, ao_file, norm_file = load_texture_maps(input_dir)
 
     if mesh_file is None:
         raise FileNotFoundError("No .obj file found in this folder.")
