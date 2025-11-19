@@ -1,94 +1,130 @@
 import trimesh
 import numpy as np
 from PIL import Image
-import numpy as np
+import os
+
 
 # ============= BARYCENTRIC COORDINATES =============
-def _barycentric_coords(p, tri):
-    """Calculate barycentric coordinates for UV interpolation"""
-    v0, v1, v2 = tri
+def _barycentric_coords_batch(points, triangles):
+    v0 = triangles[:, 0]
+    v1 = triangles[:, 1]
+    v2 = triangles[:, 2]
+    
     v0v1 = v1 - v0
     v0v2 = v2 - v0
-    v0p = p - v0
-    d00 = np.dot(v0v1, v0v1)
-    d01 = np.dot(v0v1, v0v2)
-    d11 = np.dot(v0v2, v0v2)
-    d20 = np.dot(v0p, v0v1)
-    d21 = np.dot(v0p, v0v2)
+    v0p = points - v0
+    
+    d00 = np.sum(v0v1 * v0v1, axis=1)
+    d01 = np.sum(v0v1 * v0v2, axis=1)
+    d11 = np.sum(v0v2 * v0v2, axis=1)
+    d20 = np.sum(v0p * v0v1, axis=1)
+    d21 = np.sum(v0p * v0v2, axis=1)
+    
     denom = d00 * d11 - d01 * d01
     
-    if abs(denom) < 1e-10:
-        return np.array([1/3, 1/3, 1/3])
+    # Handle degenerate triangles
+    valid = np.abs(denom) > 1e-10
     
-    v = (d11 * d20 - d01 * d21) / denom
-    w = (d00 * d21 - d01 * d20) / denom
-    u = 1 - v - w
-    return np.array([u, v, w])
+    v_coord = np.zeros(len(points))
+    w_coord = np.zeros(len(points))
+    
+    v_coord[valid] = (d11[valid] * d20[valid] - d01[valid] * d21[valid]) / denom[valid]
+    w_coord[valid] = (d00[valid] * d21[valid] - d01[valid] * d20[valid]) / denom[valid]
+    
+    # For degenerate triangles, use centroid
+    v_coord[~valid] = 1/3
+    w_coord[~valid] = 1/3
+    
+    u_coord = 1 - v_coord - w_coord
+    
+    return np.stack([u_coord, v_coord, w_coord], axis=1)
 
-# ============= RGB TO INTEGER (Compatible dengan THREE.PCDLoader) =============
-def _rgb_to_int(r, g, b):
-    """ Formula: b + 256*g + 256*256*r """
 
-    return int(b) + 256 * int(g) + 256 * 256 * int(r)
+# ============= RGB TO INTEGER =============
+def _rgb_to_int_batch(colors_rgb):
+    return (colors_rgb[:, 2].astype(np.uint32) + 
+            256 * colors_rgb[:, 1].astype(np.uint32) + 
+            65536 * colors_rgb[:, 0].astype(np.uint32))
+
 
 def _int_to_rgb(rgb_int):
-    """ Convert RGB integers to R, G, B """
-    
     b = rgb_int & 0xFF
     g = (rgb_int >> 8) & 0xFF
     r = (rgb_int >> 16) & 0xFF
     return r, g, b
 
-# ============= SAVE POINT CLOUD DENGAN RGB INTEGER =============
-def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
-    """ Save the point cloud from the mesh with texture in PCD format (ASCII) """
+
+# ============= LOAD TEXTURE =============
+def load_texture_maps(foldername, filenames):
+    mesh_file = None
+    tex_file = None
+    ao_file = None
+    norm_file = None
     
+    for f in filenames:
+        f_lower = f.lower()
+        full_path = os.path.join(foldername, f)
+        
+        if f.endswith(".obj"):
+            mesh_file = full_path
+        elif f.endswith(".png"):
+            if 'tex' in f_lower or 'diffuse' in f_lower or 'albedo' in f_lower:
+                tex_file = full_path
+            elif 'ao' in f_lower or 'occlusion' in f_lower:
+                ao_file = full_path
+            elif 'norm' in f_lower or 'normal' in f_lower:
+                norm_file = full_path
+    
+    return mesh_file, tex_file, ao_file, norm_file
+
+
+def load_base_texture(tex_path):
+    print("  Loading base texture...")
+    texture = Image.open(tex_path).convert('RGB')
+    return np.array(texture, dtype=np.uint8)
+
+# ============= MESH TO POINT CLOUD =============
+def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
     print("Loading mesh...")
     mesh = trimesh.load(mesh_path, force='mesh')
     
     if mesh.visual.uv is None:
-        raise ValueError("Mesh tidak memiliki UV coordinates!")
+        raise ValueError("Mesh does not have UV coordinates!")
     
     print("Loading texture...")
-    texture_image = Image.open(texture_path).convert('RGB')
-    texture = np.array(texture_image)  # uint8, range 0-255
+    texture = load_base_texture(texture_path)
+    h, w = texture.shape[:2]
     
     print(f"Sampling {num_points} points...")
     points, face_indices = mesh.sample(num_points, return_index=True)
     
+    # Get UV coordinates and triangle vertices for sampled points
     faces_uv = mesh.visual.uv[mesh.faces[face_indices]]
     triangles = mesh.vertices[mesh.faces[face_indices]]
     
-    print("Mapping UV ke texture...")
-    rgb_ints = []
-    colors_rgb = []
+    print("Computing barycentric coordinates...")
+    bary = _barycentric_coords_batch(points, triangles)
     
-    for i, p in enumerate(points):
-        if (i + 1) % 20000 == 0:
-            print(f"  Progress: {i+1}/{num_points}")
-        
-        tri = triangles[i]
-        uv_tri = faces_uv[i]
-        bary = _barycentric_coords(p, tri)
-        uv = bary[0]*uv_tri[0] + bary[1]*uv_tri[1] + bary[2]*uv_tri[2]
-        
-        h, w, _ = texture.shape
-        px = int(np.clip(uv[0], 0, 1) * (w - 1))
-        py = int(np.clip(1 - uv[1], 0, 1) * (h - 1))
-        color = texture[py, px]
-        
-        r, g, b = int(color[0]), int(color[1]), int(color[2])
-        rgb_int = _rgb_to_int(r, g, b)
-        
-        colors_rgb.append([r, g, b])
-        rgb_ints.append(rgb_int)
+    print("Interpolating UV coordinates...")
+    # Interpolate UV using barycentric coordinates
+    uv_interpolated = (bary[:, 0:1] * faces_uv[:, 0] + 
+                       bary[:, 1:2] * faces_uv[:, 1] + 
+                       bary[:, 2:3] * faces_uv[:, 2])
     
-    rgb_ints = np.array(rgb_ints, dtype=np.uint32)
-    colors_rgb = np.array(colors_rgb, dtype=np.uint8)
+    print("Sampling texture colors...")
+    # Convert UV to pixel coordinates
+    px = np.clip(uv_interpolated[:, 0] * (w - 1), 0, w - 1).astype(int)
+    py = np.clip((1 - uv_interpolated[:, 1]) * (h - 1), 0, h - 1).astype(int)
+    
+    # Sample colors from texture
+    colors_rgb = texture[py, px]
+    
+    # Convert to packed RGB integers
+    rgb_ints = _rgb_to_int_batch(colors_rgb)
     
     print("Writing PCD file (ASCII format)...")
     with open(save_path, 'w') as f:
-        # Header
+        # Write header
         f.write('VERSION .7\n')
         f.write('FIELDS x y z rgb\n')
         f.write('SIZE 4 4 4 4\n')
@@ -100,7 +136,7 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
         f.write(f'POINTS {len(points)}\n')
         f.write('DATA ascii\n')
         
-        # ASCII data: x y z rgb
+        # Write point data
         for i in range(len(points)):
             x, y, z = points[i]
             rgb = rgb_ints[i]
@@ -111,6 +147,7 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
     
     return points, rgb_ints, colors_rgb
 
+
 # ============= READ POINT CLOUD =============
 def read_pointcloud_pcd(pcd_path):
     print(f"\nReading point cloud from: {pcd_path}")
@@ -118,14 +155,14 @@ def read_pointcloud_pcd(pcd_path):
     with open(pcd_path, 'r') as f:
         lines = f.readlines()
     
-    # Parse header
+    # Find data section
     data_start = 0
     for i, line in enumerate(lines):
         if line.startswith('DATA ascii'):
             data_start = i + 1
             break
     
-    # Parse ASCII data
+    # Parse point data
     points = []
     rgb_ints = []
     colors_rgb = []
@@ -146,18 +183,11 @@ def read_pointcloud_pcd(pcd_path):
     colors_rgb = np.array(colors_rgb, dtype=np.uint8)
     
     print(f"- Loaded {len(points)} points")
-    print(f"- Sample RGB integer: {rgb_ints[:5]}")
-    print(f"- Sample RGB decomposed:\n{colors_rgb[:5]}")
     
     return points, rgb_ints, colors_rgb
 
-def get_chunks_indices(n_data, chunk_size):
-    rand_indices = np.random.permutation(n_data)
-    chunks_indices = [rand_indices[i:i + chunk_size] for i in range(0, n_data, chunk_size)]
-    return chunks_indices
 
 def visualize_pointcloud(points, colors_rgb):
-    """Visualisasi point cloud dengan RGB integer"""
     try:
         import open3d as o3d
         print("\nVisualizing with Open3D...")
@@ -166,61 +196,93 @@ def visualize_pointcloud(points, colors_rgb):
         pcd.points = o3d.utility.Vector3dVector(points)
         pcd.colors = o3d.utility.Vector3dVector(colors_rgb.astype(np.float64) / 255.0)
         
-        o3d.visualization.draw_geometries([pcd], window_name="Point Cloud", width=1000, height=800)
+        o3d.visualization.draw_geometries(
+            [pcd], 
+            window_name="Point Cloud", 
+            width=1000, 
+            height=800
+        )
     except ImportError:
-        print("Open3D not installed, skipping visualization")
+        print("- Open3D not installed, skipping visualization")
+
+def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points=100000, visualize=False):
+    filenames = os.listdir(input_dir)
+    
+    mesh_file, tex_file, ao_file, norm_file = load_texture_maps(input_dir, filenames)
+
+    if mesh_file is None:
+        raise FileNotFoundError("No .obj file found in this folder.")
+
+    if tex_file is None:
+        raise FileNotFoundError("No texture file found in this folder.")
+
+    try:
+        print("\nCreating point cloud...")
+        points, rgb_ints, colors_rgb = mesh_to_point_cloud(
+            mesh_file,
+            tex_file,
+            save_pcd_path,
+            num_points=num_points
+        )
+
+        if visualize:
+            visualize_pointcloud(points, colors_rgb)
+
+        return points, rgb_ints, colors_rgb
+
+    except Exception as e:
+        raise RuntimeError(f"Error processing folder: {input_dir}") from e
+
+def get_chunks_indices(n_data, chunk_size):
+    rand_indices = np.random.permutation(n_data)
+    chunks_indices = [rand_indices[i:i + chunk_size] for i in range(0, n_data, chunk_size)]
+    return chunks_indices
+
+def make_dataset():
+    """
+    Batch convert textured meshes to colored point clouds
+    
+    Expected folder structure:
+        input_dir/
+            data_1/
+                - mesh.obj
+                - mesh_tex0.png
+            data_2/
+                - mesh.obj
+                - mesh_tex0.png
+            ...
+    """
+    input_dir = input('Input directory: ')
+    out_dir = input('Output directory: ')
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    processed_count = 0
+    
+    for foldername, subfolders, filenames in os.walk(input_dir):
+        if not filenames:
+            continue
+
+        clean_name = (
+            os.path.basename(foldername)
+            .replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
+        )
+
+        save_pcd_path = os.path.join(out_dir, clean_name + ".pcd")
+
+        try:
+            convert_mesh_folder_to_pcd(foldername, save_pcd_path=save_pcd_path)
+            processed_count += 1
+
+        except Exception as e:
+            print(f"✗ Failed to process {foldername}: {e}")
+
+    print(f"\n{'='*60}")
+    print(f"- ALL DONE! Processed {processed_count} meshes")
+    print(f"{'='*60}")
 
 # ============= MAIN =============
 if __name__ == "__main__":
-    import os
-
-    """
-    input_dir/
-        data_1/
-            - mesh.obj
-            - texture.png
-        data_2/
-            - mesh.obj
-            - texture.png
-    """
-    input_dir = input('Input dir: ')
-    out_dir = input('Output dir: ')
-    os.makedirs(out_dir, exist_ok=True)
-
-    for foldername, subfolders, filenames in os.walk(input_dir):
-        print(f"Folder saat ini: {foldername}")
-
-        # read .obj and .png
-        mesh_file = None
-        texture_file = None
-        for f in filenames:
-            if f.endswith(".obj"):
-                mesh_file = os.path.join(foldername, f)
-            elif f.endswith(".png"):
-                texture_file = os.path.join(foldername, f)
-
-        if mesh_file is None or texture_file is None:
-            print("- WARNING: No .obj or .png files found in this folder!")
-            continue
-
-        # Replace spaces with underscores and remove ()
-        clean_name = os.path.basename(foldername).replace(" ", "_").replace("(", "").replace(")", "")
-        OUTPUT_PCD = os.path.join(out_dir, clean_name + ".pcd")
-
-        # Step 1: Save colored point cloud
-        print("=" * 60)
-        print("STEP 1: Creating & Saving Colored Point Cloud")
-        print("=" * 60)
-        points, rgb_ints, colors_rgb = mesh_to_point_cloud(mesh_file, texture_file, OUTPUT_PCD, num_points=100000)
-
-        # Step 2: Read point cloud
-        print("\n" + "=" * 60)
-        print("STEP 2: Reading Point Cloud")
-        print("=" * 60)
-        points, rgb_ints_read, colors_rgb_read = read_pointcloud_pcd(OUTPUT_PCD)
-
-        # Step 3: Visualize
-        #print("\n" + "=" * 60)
-        #print("STEP 3: Visualizing")
-        #print("=" * 60)
-        #visualize_pointcloud(points, colors_rgb_read)
+    make_dataset()
