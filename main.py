@@ -28,22 +28,7 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         os.makedirs(config.RES_DIR, exist_ok=True)
 
-    def make_dataset(self) -> None:
-        print("""Expected folder structure:
-        input_dir/
-            data_1/
-                - mesh.obj
-                - mesh.mtl
-                - mesh_tex0.png
-            data_2/
-                - mesh.obj
-                - mesh.mtl
-                - mesh_tex0.png
-            ...
-        """)
-        input_dir = input('Input directory: ')
-        out_dir = input('Output directory: ')
-
+    def make_dataset(self, input_dir, out_dir) -> None:
         os.makedirs(out_dir, exist_ok=True)
 
         processed_count = 0
@@ -390,7 +375,21 @@ class Main:
                 save_dir_path = input("Save Dir Path: ").strip('"').strip()
                 self.predict_object(mesh_file_path, texture_file_path, save_dir_path, plot=True)
             elif choice == "4":
-                self.make_dataset()
+                print("""Expected folder structure:
+                input_dir/
+                    data_1/
+                        - mesh.obj
+                        - mesh.mtl
+                        - mesh_tex0.png
+                    data_2/
+                        - mesh.obj
+                        - mesh.mtl
+                        - mesh_tex0.png
+                    ...
+                """)
+                input_dir = input('Input directory: ')
+                out_dir = input('Output directory: ')
+                self.make_dataset(input_dir, out_dir)
 
 if __name__ == "__main__":
     Main().main()
