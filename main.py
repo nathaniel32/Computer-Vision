@@ -10,7 +10,7 @@ from helper.utils.plot import plot_training_stats, plot_point_cloud
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 import helper.mesh.mesh_remover
-from helper.mesh.mesh_to_point_cloud import convert_mesh_folder_to_pcd
+from helper.mesh.mesh_converter import convert_mesh_folder_to_pcd
 import numpy as np
 import random
 
