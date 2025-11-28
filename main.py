@@ -91,7 +91,7 @@ class Main:
                 print(f"- Chunk {i}/{len(chunks_indices)}")
                 points_chunk = points[chunk_indices]
                 colors_chunk = colors_int[chunk_indices]
-                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk])
+                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk], min_point_num=model_num_points)
                 
                 for (t_point, t_color) in pred_dataset:
                     t_point = t_point.unsqueeze(0).to(self.device)
@@ -196,7 +196,7 @@ class Main:
     
     def test(self):
         TEST_DIR = os.path.join(self.config.ds_root, "test")
-        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling=True)
+        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling_min_point_num=self.config.num_sample_points)
         test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
 
         model, model_num_points = self._get_and_load_model()
@@ -222,13 +222,13 @@ class Main:
         VAL_DIR = os.path.join(self.config.ds_root, "val")
 
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
-        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, sampling=True)
+        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, sampling_min_point_num=self.config.num_sample_points)
         
         self.logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         self.logger.info(f"Validation samples: {len(val_point_clouds)}")
 
         augmenter = Augmenter()
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, sampling=True)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, sampling_min_point_num=self.config.num_sample_points)
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=0, drop_last=True)
