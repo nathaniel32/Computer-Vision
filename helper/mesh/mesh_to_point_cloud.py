@@ -2,6 +2,7 @@ import trimesh
 import numpy as np
 from PIL import Image
 import os
+from typing import Tuple, List
 
 # ============= BARYCENTRIC COORDINATES =============
 def _barycentric_coords_batch(points, triangles):
@@ -62,30 +63,48 @@ def _visualize_point_cloud(points, colors_rgb):
     except ImportError:
         print("- Open3D not installed, skipping visualization")
 
-# ============= LOAD TEXTURE =============
-def load_mesh_map(dir_path):
-    filenames = os.listdir(dir_path)
+def _get_mtl_filename(obj_path: str) -> str:
+    with open(obj_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('mtllib'):
+                return line.split()[1]
+    raise FileNotFoundError("No .mtl file reference ('mtllib') found in the .obj file.")
 
-    mesh_file = None
-    tex_file = None
-    ao_file = None
-    norm_file = None
-    
+def _get_texture_filenames(mtl_path: str) -> List[str]:
+    textures: List[str] = []
+    with open(mtl_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("map_Kd"):
+                parts = line.split()
+                if len(parts) > 1:
+                    textures.append(parts[1])
+
+    if not textures:
+        raise FileNotFoundError("No 'map_Kd' (texture file) found inside the .mtl file.")
+
+    return textures
+
+# ============= LOAD TEXTURE =============
+def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
+    filenames: List[str] = os.listdir(dir_path)
+
     for f in filenames:
-        f_lower = f.lower()
-        full_path = os.path.join(dir_path, f)
-        
-        if f.endswith(".obj"):
-            mesh_file = full_path
-        elif f.endswith(".png"):
-            if 'tex' in f_lower or 'diffuse' in f_lower or 'albedo' in f_lower:
-                tex_file = full_path
-            elif 'ao' in f_lower or 'occlusion' in f_lower:
-                ao_file = full_path
-            elif 'norm' in f_lower or 'normal' in f_lower:
-                norm_file = full_path
-    
-    return mesh_file, tex_file, ao_file, norm_file
+        if f.lower().endswith(".obj"):
+            obj_path: str = os.path.join(dir_path, f)
+
+            mtl_file: str = _get_mtl_filename(obj_path)
+            mtl_path: str = os.path.join(dir_path, mtl_file)
+
+            if not os.path.exists(mtl_path):
+                raise FileNotFoundError(f"MTL file '{mtl_file}' not found in the folder.")
+
+            textures_path: List[str] = _get_texture_filenames(mtl_path)
+
+            return obj_path, textures_path
+
+    raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
 def mesh_to_point_cloud(mesh_path, texture_path, pcd_out_path, num_points):
