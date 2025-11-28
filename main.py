@@ -334,6 +334,7 @@ class Main:
             logger.print("1. Train Model")
             logger.print("2. Test Model")
             logger.print("3. Predict Object")
+            logger.print("4. Mesh to pointcloud")
 
             choice = input("Nr: ").strip()
 
@@ -349,6 +350,8 @@ class Main:
                 texture_file_path = input("Texture Path: ").strip('"').strip()
                 save_dir_path = input("Save Dir Path: ").strip('"').strip()
                 self.predict_object(mesh_file_path, texture_file_path, save_dir_path, plot=True)
+            elif choice == "4":
+                helper.mesh.mesh_to_pointclouds.make_dataset()
 
 if __name__ == "__main__":
     Main().main()
