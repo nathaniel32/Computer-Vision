@@ -91,7 +91,7 @@ class Main:
                 print(f"- Chunk {i}/{len(chunks_indices)}")
                 points_chunk = points[chunk_indices]
                 colors_chunk = colors_int[chunk_indices]
-                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk], min_point_num=model_num_points)
+                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk])
                 
                 for (t_point, t_color) in pred_dataset:
                     t_point = t_point.unsqueeze(0).to(self.device)
