@@ -88,7 +88,7 @@ def load_mesh_map(dir_path):
     return mesh_file, tex_file, ao_file, norm_file
 
 # ============= MESH TO POINT CLOUD =============
-def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
+def mesh_to_point_cloud(mesh_path, texture_path, pcd_out_path, num_points):
     print("Loading mesh...")
     mesh = trimesh.load(mesh_path, force='mesh')
     
@@ -129,7 +129,7 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
     rgb_ints = _rgb_to_int_batch(colors_rgb)
     
     print("Writing PCD file (ASCII format)...")
-    with open(save_path, 'w') as f:
+    with open(pcd_out_path, 'w') as f:
         # Write header
         f.write('VERSION .7\n')
         f.write('FIELDS x y z rgb\n')
@@ -148,12 +148,12 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
             rgb = rgb_ints[i]
             f.write(f"{x} {y} {z} {rgb}\n")
     
-    print(f"- Point cloud saved to: {save_path}")
+    print(f"- Point cloud saved to: {pcd_out_path}")
     print(f"- Points: {len(points)}")
     
     return points, rgb_ints, colors_rgb
 
-def convert_mesh_folder_to_pcd(dir_path, save_pcd_path, num_points, visualize=False):
+def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=False):
     mesh_file, tex_file, ao_file, norm_file = load_mesh_map(dir_path)
 
     if mesh_file is None:
@@ -167,14 +167,14 @@ def convert_mesh_folder_to_pcd(dir_path, save_pcd_path, num_points, visualize=Fa
         points, rgb_ints, colors_rgb = mesh_to_point_cloud(
             mesh_file,
             tex_file,
-            save_pcd_path,
+            pcd_out_path,
             num_points=num_points
         )
 
         if visualize:
             _visualize_pointcloud(points, colors_rgb)
 
-        return points, rgb_ints, colors_rgb, mesh_file, tex_file, ao_file, norm_file
+        return points, rgb_ints, mesh_file
 
     except Exception as e:
         raise RuntimeError(f"Error processing folder: {dir_path}") from e

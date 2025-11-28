@@ -39,10 +39,10 @@ class Main:
 
             clean_name = os.path.basename(dir_path).replace(" ", "_").replace("(", "").replace(")", "")
 
-            save_pcd_path = os.path.join(out_dir, clean_name + ".pcd")
+            pcd_out_path = os.path.join(out_dir, clean_name + ".pcd")
 
             try:
-                convert_mesh_folder_to_pcd(dir_path, save_pcd_path=save_pcd_path, num_points=100000)
+                convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points=100000)
                 processed_count += 1
 
             except Exception as e:
@@ -52,11 +52,11 @@ class Main:
         print(f"- ALL DONE! Processed {processed_count} meshes")
         print(f"{'='*60}")
 
-    def predict_object(self, mesh_file_path, texture_file_path, save_dir_path, plot=False, target_num_points=100000):
-        os.makedirs(save_dir_path, exist_ok=True)
+    def predict_object(self, input_path, output_path, plot=False, target_num_points=100000):
+        os.makedirs(output_path, exist_ok=True)
         
-        save_pcd_path = os.path.join(save_dir_path, "point_cloud.pcd")
-        save_obj_trim_path = os.path.join(save_dir_path, "trim_mesh.obj")
+        pcd_out_path = os.path.join(output_path, "point_cloud.pcd")
+        trim_out_path = os.path.join(output_path, "trim_mesh.obj")
 
         checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
         c_model_state_dict = checkpoint['model_state_dict']
@@ -68,7 +68,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}")
 
         # obj to point cloud
-        points, colors_int, colors_rgb = mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
+        points, colors_int, mesh_file_path = convert_mesh_folder_to_pcd(input_path, pcd_out_path, num_points=100000)
 
         chunks_indices = get_chunks_indices(target_num_points, c_num_points)
 
@@ -106,7 +106,7 @@ class Main:
             comb_pred_label = np.array(comb_pred_label)
             
             keep_label_id = 1
-            helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, save_obj_trim_path, keep_label_id)
+            helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
             
             # keep
             keep_indecies = comb_pred_label == keep_label_id
@@ -370,10 +370,9 @@ class Main:
             elif choice == "2":
                 self.test()
             elif choice == "3":
-                mesh_file_path = input("Mesh Path: ").strip('"').strip()
-                texture_file_path = input("Texture Path: ").strip('"').strip()
-                save_dir_path = input("Save Dir Path: ").strip('"').strip()
-                self.predict_object(mesh_file_path, texture_file_path, save_dir_path, plot=True)
+                input_path = input("Input Path: ").strip('"').strip()
+                output_path = input("Output Path: ").strip('"').strip()
+                self.predict_object(input_path, output_path, plot=True)
             elif choice == "4":
                 print("""Expected folder structure:
                 input_dir/
