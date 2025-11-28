@@ -126,7 +126,7 @@ def mesh_to_point_cloud(mesh_path, texture_path, pcd_out_path, num_points):
     colors_rgb = texture[py, px]
     
     # Convert to packed RGB integers
-    rgb_ints = _rgb_to_int_batch(colors_rgb)
+    colors_int = _rgb_to_int_batch(colors_rgb)
     
     print("Writing PCD file (ASCII format)...")
     with open(pcd_out_path, 'w') as f:
@@ -145,13 +145,13 @@ def mesh_to_point_cloud(mesh_path, texture_path, pcd_out_path, num_points):
         # Write point data
         for i in range(len(points)):
             x, y, z = points[i]
-            rgb = rgb_ints[i]
+            rgb = colors_int[i]
             f.write(f"{x} {y} {z} {rgb}\n")
     
     print(f"- Point cloud saved to: {pcd_out_path}")
     print(f"- Points: {len(points)}")
     
-    return points, rgb_ints, colors_rgb
+    return points, colors_int, colors_rgb
 
 def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=False):
     mesh_file, tex_file, ao_file, norm_file = load_mesh_map(dir_path)
@@ -164,7 +164,7 @@ def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=Fal
 
     try:
         print("\nCreating point cloud...")
-        points, rgb_ints, colors_rgb = mesh_to_point_cloud(
+        points, colors_int, colors_rgb = mesh_to_point_cloud(
             mesh_file,
             tex_file,
             pcd_out_path,
@@ -174,7 +174,7 @@ def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=Fal
         if visualize:
             _visualize_pointcloud(points, colors_rgb)
 
-        return points, rgb_ints, mesh_file
+        return points, colors_int, mesh_file
 
     except Exception as e:
         raise RuntimeError(f"Error processing folder: {dir_path}") from e
