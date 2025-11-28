@@ -64,7 +64,7 @@ class Main:
         c_epoch = checkpoint['epoch']
         model = PointNetSegmentation(num_classes=c_num_classes).to(self.device)
         model.load_state_dict(c_model_state_dict)
-        print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}")
+        print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}, chunk_size={c_num_points}")
 
         model.eval()
         with torch.no_grad():
