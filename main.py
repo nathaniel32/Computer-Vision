@@ -67,12 +67,12 @@ class Main:
         model = PointNetSegmentation(num_classes=len(classes)).to(self.device)
         model.load_state_dict(model_state_dict)
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={num_points}")
-        return model, num_points
+        return model, num_points, classes
 
     def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
-        model, model_num_points = self._get_and_load_model()
+        model, model_num_points, model_classes = self._get_and_load_model()
 
         model.eval()
         with torch.no_grad():
@@ -119,9 +119,9 @@ class Main:
             if plot:
                 keep_indecies = comb_pred_label == keep_label_id # keep
                 remove_indecies = comb_pred_label != keep_label_id # remove
-                plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
-                plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
-                plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
+                plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
+                plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], model_classes, pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
+                plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], model_classes, pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()
@@ -195,11 +195,11 @@ class Main:
         return avg_loss, accuracy
     
     def test(self):
-        TEST_DIR = os.path.join(self.config.ds_root, "test")
-        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling_min_point_num=self.config.num_sample_points)
-        test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
+        model, model_num_points, model_classes = self._get_and_load_model()
 
-        model, model_num_points = self._get_and_load_model()
+        TEST_DIR = os.path.join(self.config.ds_root, "test")
+        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling_min_point_num=model_num_points)
+        test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
 
         model.eval()
         with torch.no_grad():
@@ -212,7 +212,7 @@ class Main:
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_point_cloud(point_plot, color_plot, pred_label=pred_label, true_label=label)
+                plot_point_cloud(point_plot, color_plot, model_classes, pred_label=pred_label, true_label=label)
     
     def train(self, val_interval=1, warmup_epochs=5, resume=False):
         if not resume:

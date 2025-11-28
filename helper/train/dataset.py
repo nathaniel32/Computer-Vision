@@ -4,7 +4,6 @@ from tqdm import tqdm
 import numpy as np
 from glob import glob
 import os
-import configs
 from typing import Optional
 from helper.train.augment import Augmenter
 
@@ -103,10 +102,7 @@ class PointCloudSegmentationDataset(Dataset):
                 points, colors, labels = _random_sampling_points(points, colors, self.sampling_min_point_num, labels=labels)
 
             if self.augmenter is not None:
-                #from helper.utils.plot import plot_point_cloud
-                #plot_point_cloud(points, colors, true_label=labels)
                 points, colors, labels = self.augmenter.augment(points, colors, labels)
-                #plot_point_cloud(points, colors, true_label=labels)
             
             points = transform_cloud_point(points)
 
