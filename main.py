@@ -52,24 +52,28 @@ class Main:
         print(f"- ALL DONE! Processed {processed_count} meshes")
         print(f"{'='*60}")
 
+    def _get_and_load_model(self):
+        # load model
+        checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
+        model_state_dict = checkpoint['model_state_dict']
+        classes = checkpoint['classes']
+        num_points = checkpoint['num_points']
+        val_acc = checkpoint['val_acc']
+        epoch = checkpoint['epoch']
+        model = PointNetSegmentation(num_classes=len(classes)).to(self.device)
+        model.load_state_dict(model_state_dict)
+        print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={num_points}")
+        return model, num_points
+
     def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
-        # load model
-        checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
-        c_model_state_dict = checkpoint['model_state_dict']
-        c_num_classes = checkpoint['num_classes']
-        c_num_points = checkpoint['num_points']
-        c_val_acc = checkpoint['val_acc']
-        c_epoch = checkpoint['epoch']
-        model = PointNetSegmentation(num_classes=c_num_classes).to(self.device)
-        model.load_state_dict(c_model_state_dict)
-        print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}, chunk_size={c_num_points}")
+        model, model_num_points = self._get_and_load_model()
 
         model.eval()
         with torch.no_grad():
             # divide into chunks
-            chunks_indices = get_chunks_indices(target_num_points, c_num_points)
+            chunks_indices = get_chunks_indices(target_num_points, model_num_points)
 
             # obj to point cloud
             pcd_out_path = os.path.join(output_dir_path, "point_cloud.pcd")
@@ -191,11 +195,7 @@ class Main:
         test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling=True)
         test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
 
-        num_classes = len(config.CLASSES)
-        model = PointNetSegmentation(num_classes=num_classes).to(self.device)
-
-        checkpoint = torch.load(self.save_model_path)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        model, model_num_points = self._get_and_load_model()
 
         model.eval()
         with torch.no_grad():
@@ -320,7 +320,7 @@ class Main:
                         'scheduler_state_dict': main_scheduler.state_dict(),
                         'epoch': epoch,
                         'val_acc': val_acc,
-                        'num_classes': num_classes,
+                        'classes': config.CLASSES,
                         'num_points': config.NUM_SAMPLE_POINTS,
                         'train_losses': train_losses,
                         'val_losses': val_losses,
