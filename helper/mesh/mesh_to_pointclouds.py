@@ -239,19 +239,18 @@ def get_chunks_indices(n_data, chunk_size):
     return chunks_indices
 
 def make_dataset():
-    """
-    Batch convert textured meshes to colored point clouds
-    
-    Expected folder structure:
-        input_dir/
-            data_1/
-                - mesh.obj
-                - mesh_tex0.png
-            data_2/
-                - mesh.obj
-                - mesh_tex0.png
-            ...
-    """
+    print("""Expected folder structure:
+    input_dir/
+        data_1/
+            - mesh.obj
+            - mesh.mtl
+            - mesh_tex0.png
+        data_2/
+            - mesh.obj
+            - mesh.mtl
+            - mesh_tex0.png
+        ...
+    """)
     input_dir = input('Input directory: ')
     out_dir = input('Output directory: ')
 
@@ -282,7 +281,3 @@ def make_dataset():
     print(f"\n{'='*60}")
     print(f"- ALL DONE! Processed {processed_count} meshes")
     print(f"{'='*60}")
-
-# ============= MAIN =============
-if __name__ == "__main__":
-    make_dataset()
