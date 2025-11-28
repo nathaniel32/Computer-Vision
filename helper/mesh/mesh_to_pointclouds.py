@@ -63,8 +63,8 @@ def _visualize_pointcloud(points, colors_rgb):
         print("- Open3D not installed, skipping visualization")
 
 # ============= LOAD TEXTURE =============
-def load_mesh_map(foldername):
-    filenames = os.listdir(foldername)
+def load_mesh_map(dir_path):
+    filenames = os.listdir(dir_path)
 
     mesh_file = None
     tex_file = None
@@ -73,7 +73,7 @@ def load_mesh_map(foldername):
     
     for f in filenames:
         f_lower = f.lower()
-        full_path = os.path.join(foldername, f)
+        full_path = os.path.join(dir_path, f)
         
         if f.endswith(".obj"):
             mesh_file = full_path
@@ -153,8 +153,8 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
     
     return points, rgb_ints, colors_rgb
 
-def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points, visualize=False):
-    mesh_file, tex_file, ao_file, norm_file = load_mesh_map(input_dir)
+def convert_mesh_folder_to_pcd(dir_path, save_pcd_path, num_points, visualize=False):
+    mesh_file, tex_file, ao_file, norm_file = load_mesh_map(dir_path)
 
     if mesh_file is None:
         raise FileNotFoundError("No .obj file found in this folder.")
@@ -177,7 +177,7 @@ def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points, visualize=F
         return points, rgb_ints, colors_rgb, mesh_file, tex_file, ao_file, norm_file
 
     except Exception as e:
-        raise RuntimeError(f"Error processing folder: {input_dir}") from e
+        raise RuntimeError(f"Error processing folder: {dir_path}") from e
 
 def make_dataset() -> None:
     print("""Expected folder structure:
@@ -199,25 +199,20 @@ def make_dataset() -> None:
 
     processed_count = 0
     
-    for foldername, subfolders, filenames in os.walk(input_dir):
+    for dir_path, subfolders, filenames in os.walk(input_dir):
         if not filenames:
             continue
 
-        clean_name = (
-            os.path.basename(foldername)
-            .replace(" ", "_")
-            .replace("(", "")
-            .replace(")", "")
-        )
+        clean_name = os.path.basename(dir_path).replace(" ", "_").replace("(", "").replace(")", "")
 
         save_pcd_path = os.path.join(out_dir, clean_name + ".pcd")
 
         try:
-            convert_mesh_folder_to_pcd(foldername, save_pcd_path=save_pcd_path, num_points=100000)
+            convert_mesh_folder_to_pcd(dir_path, save_pcd_path=save_pcd_path, num_points=100000)
             processed_count += 1
 
         except Exception as e:
-            print(f"✗ Failed to process {foldername}: {e}")
+            print(f"✗ Failed to process {dir_path}: {e}")
 
     print(f"\n{'='*60}")
     print(f"- ALL DONE! Processed {processed_count} meshes")
