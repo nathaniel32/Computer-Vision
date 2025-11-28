@@ -100,25 +100,28 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
             if not os.path.exists(mtl_path):
                 raise FileNotFoundError(f"MTL file '{mtl_file}' not found in the folder.")
 
-            textures_path: List[str] = _get_texture_filenames(mtl_path)
+            textures_filename: List[str] = _get_texture_filenames(mtl_path)
+
+            textures_path: str = os.path.join(dir_path, textures_filename)
 
             return obj_path, textures_path
 
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-def convert_mesh_to_point_cloud(obj_path:str, texture_path:List[str], pcd_out_path:str, num_points:int):
+def convert_mesh_to_point_cloud(obj_path: str, texture_path: List[str], pcd_out_path: str, num_points: int):
     print("Loading mesh...")
     mesh = trimesh.load(obj_path, force='mesh')
     
     if mesh.visual.uv is None:
         raise ValueError("Mesh does not have UV coordinates!")
     
-    print("Loading texture...")
-    texture_img = Image.open(texture_path).convert('RGB')
-    texture = np.array(texture_img, dtype=np.uint8)
-
-    h, w = texture.shape[:2]
+    # Handle multiple textures
+    print("Loading textures...")
+    textures = []
+    for tex_path in texture_path:
+        texture_img = Image.open(tex_path).convert('RGB')
+        textures.append(np.array(texture_img, dtype=np.uint8))
     
     print(f"Sampling {num_points} points...")
     points, face_indices = mesh.sample(num_points, return_index=True)
@@ -131,25 +134,46 @@ def convert_mesh_to_point_cloud(obj_path:str, texture_path:List[str], pcd_out_pa
     bary = _barycentric_coords_batch(points, triangles)
     
     print("Interpolating UV coordinates...")
-    # Interpolate UV using barycentric coordinates
     uv_interpolated = (bary[:, 0:1] * faces_uv[:, 0] + 
                        bary[:, 1:2] * faces_uv[:, 1] + 
                        bary[:, 2:3] * faces_uv[:, 2])
     
     print("Sampling texture colors...")
-    # Convert UV to pixel coordinates
-    px = np.clip(uv_interpolated[:, 0] * (w - 1), 0, w - 1).astype(int)
-    py = np.clip((1 - uv_interpolated[:, 1]) * (h - 1), 0, h - 1).astype(int)
+    colors_rgb = np.zeros((len(points), 3), dtype=np.uint8)
     
-    # Sample colors from texture
-    colors_rgb = texture[py, px]
+    # Determine which texture to use for each face
+    if hasattr(mesh.visual, 'face_materials'):
+        # If mesh has face_materials, use them to index into textures
+        face_materials = mesh.visual.face_materials
+        
+        for i, face_idx in enumerate(face_indices):
+            material_idx = face_materials[face_idx] if face_materials is not None else 0
+            material_idx = min(material_idx, len(textures) - 1)  # Safety clamp
+            
+            texture = textures[material_idx]
+            h, w = texture.shape[:2]
+            
+            # Convert UV to pixel coordinates
+            px = np.clip(int(uv_interpolated[i, 0] * (w - 1)), 0, w - 1)
+            py = np.clip(int((1 - uv_interpolated[i, 1]) * (h - 1)), 0, h - 1)
+            
+            colors_rgb[i] = texture[py, px]
+    else:
+        # Fallback: use first texture for all points
+        print("Warning: No face_materials found, using first texture for all points")
+        texture = textures[0]
+        h, w = texture.shape[:2]
+        
+        px = np.clip(uv_interpolated[:, 0] * (w - 1), 0, w - 1).astype(int)
+        py = np.clip((1 - uv_interpolated[:, 1]) * (h - 1), 0, h - 1).astype(int)
+        
+        colors_rgb = texture[py, px]
     
     # Convert to packed RGB integers
     colors_int = _rgb_to_int_batch(colors_rgb)
     
     print("Writing PCD file (ASCII format)...")
     with open(pcd_out_path, 'w') as f:
-        # Write header
         f.write('VERSION .7\n')
         f.write('FIELDS x y z rgb\n')
         f.write('SIZE 4 4 4 4\n')
@@ -161,7 +185,6 @@ def convert_mesh_to_point_cloud(obj_path:str, texture_path:List[str], pcd_out_pa
         f.write(f'POINTS {len(points)}\n')
         f.write('DATA ascii\n')
         
-        # Write point data
         for i in range(len(points)):
             x, y, z = points[i]
             rgb = colors_int[i]
@@ -169,6 +192,7 @@ def convert_mesh_to_point_cloud(obj_path:str, texture_path:List[str], pcd_out_pa
     
     print(f"- Point cloud saved to: {pcd_out_path}")
     print(f"- Points: {len(points)}")
+    print(f"- Textures used: {len(textures)}")
     
     return points, colors_int, colors_rgb
 
