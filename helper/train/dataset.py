@@ -36,7 +36,7 @@ def transform_cloud_point(points):
     norm_points /= np.max(np.linalg.norm(norm_points, axis=1))
     return norm_points
 
-def load_pcd_with_point_labels(directory, sampling_min_point_num=None):
+def load_pcd_with_point_labels(directory, rand_sampling_min_num=None):
     point_clouds, label_clouds, color_clouds = [], [], []
     pcd_files = glob(os.path.join(directory, "*.pcd"))
     
@@ -56,8 +56,8 @@ def load_pcd_with_point_labels(directory, sampling_min_point_num=None):
         color_ints = data[:, 3].astype(np.uint32)
         labels = data[:, 4].astype(int)
 
-        if sampling_min_point_num is not None:
-            points, color_ints, labels = _random_sampling_points(points, color_ints, sampling_min_point_num, labels=labels)
+        if rand_sampling_min_num is not None:
+            points, color_ints, labels = _random_sampling_points(points, color_ints, rand_sampling_min_num, labels=labels)
         
         # Original sample
         point_clouds.append(points)
@@ -68,12 +68,12 @@ def load_pcd_with_point_labels(directory, sampling_min_point_num=None):
     return point_clouds, color_clouds, label_clouds
 
 class PointCloudSegmentationDataset(Dataset):
-    def __init__(self, point_clouds, color_clouds, labels=None, augmenter:Optional[Augmenter]=None, sampling_min_point_num=None):
+    def __init__(self, point_clouds, color_clouds, labels=None, augmenter:Optional[Augmenter]=None, rand_sampling_min_num=None):
         self.point_clouds = point_clouds
         self.color_clouds = [transform_color(c) for c in color_clouds]
         self.labels = labels
         self.augmenter = augmenter
-        self.sampling_min_point_num = sampling_min_point_num
+        self.rand_sampling_min_num = rand_sampling_min_num
 
     def __len__(self):
         return len(self.point_clouds)
@@ -83,8 +83,8 @@ class PointCloudSegmentationDataset(Dataset):
         colors = self.color_clouds[idx]
         
         if self.labels is None:
-            if self.sampling_min_point_num is not None:
-                points, colors = _random_sampling_points(points, colors, self.sampling_min_point_num)
+            if self.rand_sampling_min_num is not None:
+                points, colors = _random_sampling_points(points, colors, self.rand_sampling_min_num)
             
             points = transform_cloud_point(points)
             tensor_points = torch.FloatTensor(points)
@@ -98,8 +98,8 @@ class PointCloudSegmentationDataset(Dataset):
         else:
             labels = self.labels[idx]
 
-            if self.sampling_min_point_num:
-                points, colors, labels = _random_sampling_points(points, colors, self.sampling_min_point_num, labels=labels)
+            if self.rand_sampling_min_num:
+                points, colors, labels = _random_sampling_points(points, colors, self.rand_sampling_min_num, labels=labels)
 
             if self.augmenter is not None:
                 points, colors, labels = self.augmenter.augment(points, colors, labels)

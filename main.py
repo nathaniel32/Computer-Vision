@@ -198,7 +198,7 @@ class Main:
         model, model_num_points, model_classes = self._get_and_load_model()
 
         TEST_DIR = os.path.join(self.config.ds_root, "test")
-        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling_min_point_num=model_num_points)
+        test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, rand_sampling_min_num=model_num_points)
         test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
 
         model.eval()
@@ -222,13 +222,13 @@ class Main:
         VAL_DIR = os.path.join(self.config.ds_root, "val")
 
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
-        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, sampling_min_point_num=self.config.num_sample_points)
+        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, rand_sampling_min_num=self.config.num_sample_points)
         
         self.logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         self.logger.info(f"Validation samples: {len(val_point_clouds)}")
 
-        augmenter = Augmenter()
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, sampling_min_point_num=self.config.num_sample_points)
+        augmenter = Augmenter(config=self.config)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, rand_sampling_min_num=self.config.num_sample_points)
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=0, drop_last=True)
