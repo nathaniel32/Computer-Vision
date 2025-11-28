@@ -69,7 +69,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={num_points}")
         return model, num_points, classes
 
-    def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=200000):
+    def predict_object(self, input_dir_path, output_dir_path, plot=False, total_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
         model, model_num_points, model_classes = self._get_and_load_model()
@@ -77,11 +77,11 @@ class Main:
         model.eval()
         with torch.no_grad():
             # divide into chunks
-            chunks_indices = get_chunks_indices(target_num_points, model_num_points)
+            chunks_indices = get_chunks_indices(total_num_points, model_num_points)
 
             # obj to point cloud
             pcd_out_path = os.path.join(output_dir_path, "point_cloud.pcd")
-            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, num_points=target_num_points)
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, num_points=total_num_points)
 
             comb_points = []
             comb_color = []
