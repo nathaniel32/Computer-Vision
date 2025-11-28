@@ -44,7 +44,7 @@ def _rgb_to_int_batch(colors_rgb):
             256 * colors_rgb[:, 1].astype(np.uint32) + 
             65536 * colors_rgb[:, 0].astype(np.uint32))
 
-def _visualize_pointcloud(points, colors_rgb):
+def _visualize_point_cloud(points, colors_rgb):
     try:
         import open3d as o3d
         print("\nVisualizing with Open3D...")
@@ -172,7 +172,7 @@ def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=Fal
         )
 
         if visualize:
-            _visualize_pointcloud(points, colors_rgb)
+            _visualize_point_cloud(points, colors_rgb)
 
         return points, colors_int, mesh_file
 

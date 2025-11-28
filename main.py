@@ -10,7 +10,7 @@ from helper.utils.plot import plot_training_stats, plot_point_cloud
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 import helper.mesh.mesh_remover
-from helper.mesh.mesh_to_pointclouds import convert_mesh_folder_to_pcd, mesh_to_point_cloud
+from helper.mesh.mesh_to_point_cloud import convert_mesh_folder_to_pcd, mesh_to_point_cloud
 import numpy as np
 import random
 
@@ -55,6 +55,7 @@ class Main:
     def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=100000):
         os.makedirs(output_dir_path, exist_ok=True)
         
+        # load model
         checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
         c_model_state_dict = checkpoint['model_state_dict']
         c_num_classes = checkpoint['num_classes']
@@ -101,6 +102,7 @@ class Main:
             comb_color = np.array(comb_color)
             comb_pred_label = np.array(comb_pred_label)
             
+            # trim mesh
             keep_label_id = 1
             trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
             helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
@@ -351,7 +353,7 @@ class Main:
             logger.print("1. Train Model")
             logger.print("2. Test Model")
             logger.print("3. Predict Object")
-            logger.print("4. Mesh to pointcloud")
+            logger.print("4. Mesh to point cloud")
 
             choice = input("Nr: ").strip()
 
