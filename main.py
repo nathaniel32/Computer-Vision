@@ -32,7 +32,7 @@ class Main:
         self.save_model_path = os.path.join(self.out_root_dir, "best_model.pth")
         os.makedirs(self.out_root_dir, exist_ok=True)
 
-    def make_dataset(self, input_dir, out_dir) -> None:
+    def make_dataset(self, input_dir, out_dir, total_num_points=500000) -> None:
         os.makedirs(out_dir, exist_ok=True)
 
         processed_count = 0
@@ -46,7 +46,7 @@ class Main:
             pcd_out_path = os.path.join(out_dir, clean_name + ".pcd")
 
             try:
-                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, total_num_points=500000, visualize=True)
+                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, total_num_points=total_num_points, visualize=True)
                 processed_count += 1
 
             except Exception as e:
