@@ -11,7 +11,7 @@ BATCH_SIZE = 12
 LR = 1e-3
 PATIENCE = 20
 
-TARGET_CLASS_IDS = [0, 1]
+TARGET_COLOR_AUGMENT_LABELS = [0, 1]
 CLASSES = [
     {"label": "background", "color": "#FFFFFF"},
     {"label": "hand", "color": "#00FF00"}

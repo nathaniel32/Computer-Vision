@@ -7,7 +7,7 @@ from typing import List
 
 class ColorPartAugmenter:
     def __init__(self, p_aug=0.7):
-        self.target_labels:List[int] = config.TARGET_CLASS_IDS
+        self.target_labels:List[int] = config.TARGET_COLOR_AUGMENT_LABELS
         self.p_aug = p_aug
         self.color_augment_list = self.get_augment_list()
     
