@@ -6,7 +6,7 @@ SEED = 42
 
 @dataclass
 class BaseConfig:
-    name = str,
+    name = str
     num_sample_points: int
     epochs: int
     batch_size: int
