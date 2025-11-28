@@ -71,20 +71,21 @@ def _get_mtl_filename(obj_path: str) -> str:
                 return line.split()[1]
     raise FileNotFoundError("No .mtl file reference ('mtllib') found in the .obj file.")
 
-def _get_texture_filenames(mtl_path: str) -> List[str]:
-    textures: List[str] = []
+def _get_texture_filenames(dir_path, mtl_path: str) -> List[str]:
+    textures_path: List[str] = []
     with open(mtl_path, "r") as f:
         for line in f:
             line = line.strip()
             if line.startswith("map_Kd"):
                 parts = line.split()
                 if len(parts) > 1:
-                    textures.append(parts[1])
+                    texture_path: str = os.path.join(dir_path, parts[1])
+                    textures_path.append(texture_path)
 
-    if not textures:
+    if not textures_path:
         raise FileNotFoundError("No 'map_Kd' (texture file) found inside the .mtl file.")
 
-    return textures
+    return textures_path
 
 # ============= LOAD TEXTURE =============
 def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
@@ -100,9 +101,7 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
             if not os.path.exists(mtl_path):
                 raise FileNotFoundError(f"MTL file '{mtl_file}' not found in the folder.")
 
-            textures_filename: List[str] = _get_texture_filenames(mtl_path)
-
-            textures_path: str = os.path.join(dir_path, textures_filename)
+            textures_path: List[str] = _get_texture_filenames(dir_path, mtl_path)
 
             return obj_path, textures_path
 
