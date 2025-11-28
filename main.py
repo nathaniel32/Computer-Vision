@@ -52,7 +52,7 @@ class Main:
         print(f"- ALL DONE! Processed {processed_count} meshes")
         print(f"{'='*60}")
 
-    def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=100000):
+    def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
         # load model
@@ -73,15 +73,16 @@ class Main:
 
             # obj to point cloud
             pcd_out_path = os.path.join(output_dir_path, "point_cloud.pcd")
-            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, num_points=100000)
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, num_points=target_num_points)
 
             comb_points = []
             comb_color = []
             comb_pred_label = []
 
-            for indices in chunks_indices:
-                points_chunk = points[indices]
-                colors_chunk = colors_int[indices]
+            for i, chunk_indices in enumerate(chunks_indices, start=1):
+                print(f"- Chunk {i}/{len(chunks_indices)}")
+                points_chunk = points[chunk_indices]
+                colors_chunk = colors_int[chunk_indices]
                 pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk])
                 
                 for (t_point, t_color) in pred_dataset:
