@@ -105,13 +105,9 @@ class Main:
             trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
             helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
             
-            # keep
-            keep_indecies = comb_pred_label == keep_label_id
-            
-            # remove
-            remove_indecies = comb_pred_label != keep_label_id
-
             if plot:
+                keep_indecies = comb_pred_label == keep_label_id # keep
+                remove_indecies = comb_pred_label != keep_label_id # remove
                 plot_point_cloud(comb_points, comb_color, pred_label=comb_pred_label, plot_tool="open3d")
                 plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
                 plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
