@@ -108,22 +108,118 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-
+def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: int, texture_paths: List[str] = None):
+    """
+    Convert textured mesh to colored point cloud.
+    
+    Args:
+        obj_path: Path to OBJ file
+        pcd_out_path: Output PCD file path
+        num_points: Number of points to sample
+        texture_paths: Optional. If None, will use textures from MTL file automatically
+    """
+    print("Loading mesh...")
+    # Load as scene to get all materials and textures
+    scene = trimesh.load(obj_path, force='scene', process=False)
+    
+    # Get the mesh from scene
+    if isinstance(scene, trimesh.Scene):
+        # Combine all geometries in the scene
+        mesh = trimesh.util.concatenate([
+            geom for geom in scene.geometry.values() 
+            if isinstance(geom, trimesh.Trimesh)
+        ])
+    else:
+        mesh = scene
+    
+    if mesh.visual.uv is None:
+        raise ValueError("Mesh does not have UV coordinates!")
+    
+    print(f"Mesh info:")
+    print(f"  Vertices: {len(mesh.vertices)}")
+    print(f"  Faces: {len(mesh.faces)}")
+    print(f"  Has UV: {mesh.visual.uv is not None}")
+    
+    # Get texture image from mesh visual
+    print("Extracting texture from mesh...")
+    
+    if hasattr(mesh.visual, 'material'):
+        # Try to get texture from material
+        if hasattr(mesh.visual.material, 'image'):
+            texture_img = mesh.visual.material.image
+        elif hasattr(mesh.visual.material, 'baseColorTexture'):
+            texture_img = mesh.visual.material.baseColorTexture
+        else:
+            # Try to convert visual to texture
+            texture_img = mesh.visual.to_texture()
+    else:
+        raise ValueError("No texture information found in mesh!")
+    
+    # Convert PIL Image to numpy array
+    if hasattr(texture_img, 'convert'):  # PIL Image
+        texture = np.array(texture_img.convert('RGB'), dtype=np.uint8)
+    else:
+        texture = np.array(texture_img, dtype=np.uint8)
+    
+    print(f"Texture shape: {texture.shape}")
+    h, w = texture.shape[:2]
+    
+    print(f"Sampling {num_points} points...")
+    points, face_indices = mesh.sample(num_points, return_index=True)
+    
+    # Get UV coordinates for sampled points
+    faces_uv = mesh.visual.uv[mesh.faces[face_indices]]
+    triangles = mesh.vertices[mesh.faces[face_indices]]
+    
+    print("Computing barycentric coordinates...")
+    bary = _barycentric_coords_batch(points, triangles)
+    
+    print("Interpolating UV coordinates...")
+    uv_interpolated = (bary[:, 0:1] * faces_uv[:, 0] + 
+                       bary[:, 1:2] * faces_uv[:, 1] + 
+                       bary[:, 2:3] * faces_uv[:, 2])
+    
+    print("Sampling texture colors...")
+    # Convert UV to pixel coordinates
+    px = np.clip(uv_interpolated[:, 0] * (w - 1), 0, w - 1).astype(int)
+    py = np.clip((1 - uv_interpolated[:, 1]) * (h - 1), 0, h - 1).astype(int)
+    
+    # Sample colors from texture
+    colors_rgb = texture[py, px]
+    
+    # Convert to packed RGB integers
+    colors_int = _rgb_to_int_batch(colors_rgb)
+    
+    print("Writing PCD file (ASCII format)...")
+    with open(pcd_out_path, 'w') as f:
+        f.write('VERSION .7\n')
+        f.write('FIELDS x y z rgb\n')
+        f.write('SIZE 4 4 4 4\n')
+        f.write('TYPE F F F U\n')
+        f.write('COUNT 1 1 1 1\n')
+        f.write(f'WIDTH {len(points)}\n')
+        f.write('HEIGHT 1\n')
+        f.write('VIEWPOINT 0 0 0 1 0 0 0\n')
+        f.write(f'POINTS {len(points)}\n')
+        f.write('DATA ascii\n')
+        
+        for i in range(len(points)):
+            x, y, z = points[i]
+            rgb = colors_int[i]
+            f.write(f"{x} {y} {z} {rgb}\n")
+    
+    print(f"\n- Point cloud saved: {pcd_out_path}")
+    print(f"- Points: {len(points)}")
+    
+    return points, colors_int, colors_rgb
 
 def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points, visualize=True):
     obj_path, textures_path = load_mesh_map(dir_path)
-
-    if obj_path is None:
-        raise FileNotFoundError("No .obj file found in this folder.")
-
-    if textures_path is None:
-        raise FileNotFoundError("No texture file found in this folder.")
 
     try:
         print("\nCreating point cloud...")
         points, colors_int, colors_rgb = convert_mesh_to_point_cloud(
             obj_path,
-            textures_path,
             pcd_out_path,
             num_points=num_points
         )
