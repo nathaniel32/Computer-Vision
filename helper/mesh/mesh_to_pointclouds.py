@@ -3,7 +3,6 @@ import numpy as np
 from PIL import Image
 import os
 
-
 # ============= BARYCENTRIC COORDINATES =============
 def _barycentric_coords_batch(points, triangles):
     v0 = triangles[:, 0]
@@ -39,23 +38,32 @@ def _barycentric_coords_batch(points, triangles):
     
     return np.stack([u_coord, v_coord, w_coord], axis=1)
 
-
 # ============= RGB TO INTEGER =============
 def _rgb_to_int_batch(colors_rgb):
     return (colors_rgb[:, 2].astype(np.uint32) + 
             256 * colors_rgb[:, 1].astype(np.uint32) + 
             65536 * colors_rgb[:, 0].astype(np.uint32))
 
-
-def _int_to_rgb(rgb_int):
-    b = rgb_int & 0xFF
-    g = (rgb_int >> 8) & 0xFF
-    r = (rgb_int >> 16) & 0xFF
-    return r, g, b
-
+def _visualize_pointcloud(points, colors_rgb):
+    try:
+        import open3d as o3d
+        print("\nVisualizing with Open3D...")
+        
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points)
+        pcd.colors = o3d.utility.Vector3dVector(colors_rgb.astype(np.float64) / 255.0)
+        
+        o3d.visualization.draw_geometries(
+            [pcd], 
+            window_name="Point Cloud", 
+            width=1000, 
+            height=800
+        )
+    except ImportError:
+        print("- Open3D not installed, skipping visualization")
 
 # ============= LOAD TEXTURE =============
-def load_texture_maps(foldername):
+def load_mesh_map(foldername):
     filenames = os.listdir(foldername)
 
     mesh_file = None
@@ -79,12 +87,6 @@ def load_texture_maps(foldername):
     
     return mesh_file, tex_file, ao_file, norm_file
 
-
-def load_base_texture(tex_path):
-    print("  Loading base texture...")
-    texture = Image.open(tex_path).convert('RGB')
-    return np.array(texture, dtype=np.uint8)
-
 # ============= MESH TO POINT CLOUD =============
 def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
     print("Loading mesh...")
@@ -94,7 +96,9 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
         raise ValueError("Mesh does not have UV coordinates!")
     
     print("Loading texture...")
-    texture = load_base_texture(texture_path)
+    texture_img = Image.open(texture_path).convert('RGB')
+    texture = np.array(texture_img, dtype=np.uint8)
+
     h, w = texture.shape[:2]
     
     print(f"Sampling {num_points} points...")
@@ -149,66 +153,8 @@ def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
     
     return points, rgb_ints, colors_rgb
 
-
-# ============= READ POINT CLOUD =============
-def read_pointcloud_pcd(pcd_path):
-    print(f"\nReading point cloud from: {pcd_path}")
-    
-    with open(pcd_path, 'r') as f:
-        lines = f.readlines()
-    
-    # Find data section
-    data_start = 0
-    for i, line in enumerate(lines):
-        if line.startswith('DATA ascii'):
-            data_start = i + 1
-            break
-    
-    # Parse point data
-    points = []
-    rgb_ints = []
-    colors_rgb = []
-    
-    for line in lines[data_start:]:
-        values = line.strip().split()
-        if len(values) >= 4:
-            x, y, z = float(values[0]), float(values[1]), float(values[2])
-            rgb_int = int(values[3])
-            r, g, b = _int_to_rgb(rgb_int)
-            
-            points.append([x, y, z])
-            rgb_ints.append(rgb_int)
-            colors_rgb.append([r, g, b])
-    
-    points = np.array(points, dtype=np.float32)
-    rgb_ints = np.array(rgb_ints, dtype=np.uint32)
-    colors_rgb = np.array(colors_rgb, dtype=np.uint8)
-    
-    print(f"- Loaded {len(points)} points")
-    
-    return points, rgb_ints, colors_rgb
-
-
-def visualize_pointcloud(points, colors_rgb):
-    try:
-        import open3d as o3d
-        print("\nVisualizing with Open3D...")
-        
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-        pcd.colors = o3d.utility.Vector3dVector(colors_rgb.astype(np.float64) / 255.0)
-        
-        o3d.visualization.draw_geometries(
-            [pcd], 
-            window_name="Point Cloud", 
-            width=1000, 
-            height=800
-        )
-    except ImportError:
-        print("- Open3D not installed, skipping visualization")
-
 def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points, visualize=False):
-    mesh_file, tex_file, ao_file, norm_file = load_texture_maps(input_dir)
+    mesh_file, tex_file, ao_file, norm_file = load_mesh_map(input_dir)
 
     if mesh_file is None:
         raise FileNotFoundError("No .obj file found in this folder.")
@@ -226,7 +172,7 @@ def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points, visualize=F
         )
 
         if visualize:
-            visualize_pointcloud(points, colors_rgb)
+            _visualize_pointcloud(points, colors_rgb)
 
         return points, rgb_ints, colors_rgb, mesh_file, tex_file, ao_file, norm_file
 
