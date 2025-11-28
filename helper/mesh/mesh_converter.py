@@ -1,6 +1,5 @@
 import trimesh
 import numpy as np
-from PIL import Image
 import os
 from typing import Tuple, List
 
@@ -108,16 +107,7 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: int, texture_paths: List[str] = None):
-    """
-    Convert textured mesh to colored point cloud.
-    
-    Args:
-        obj_path: Path to OBJ file
-        pcd_out_path: Output PCD file path
-        num_points: Number of points to sample
-        texture_paths: Optional. If None, will use textures from MTL file automatically
-    """
+def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: int):
     print("Loading mesh...")
     # Load as scene to get all materials and textures
     scene = trimesh.load(obj_path, force='scene', process=False)
