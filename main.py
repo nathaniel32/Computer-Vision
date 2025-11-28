@@ -10,7 +10,7 @@ from helper.utils.plot import plot_training_stats, plot_point_cloud
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 import helper.mesh.mesh_remover
-import helper.mesh.mesh_to_pointclouds
+from helper.mesh.mesh_to_pointclouds import convert_mesh_folder_to_pcd, mesh_to_point_cloud
 import numpy as np
 import random
 
@@ -28,6 +28,45 @@ class Main:
         self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
         os.makedirs(config.RES_DIR, exist_ok=True)
 
+    def make_dataset(self) -> None:
+        print("""Expected folder structure:
+        input_dir/
+            data_1/
+                - mesh.obj
+                - mesh.mtl
+                - mesh_tex0.png
+            data_2/
+                - mesh.obj
+                - mesh.mtl
+                - mesh_tex0.png
+            ...
+        """)
+        input_dir = input('Input directory: ')
+        out_dir = input('Output directory: ')
+
+        os.makedirs(out_dir, exist_ok=True)
+
+        processed_count = 0
+        
+        for dir_path, subfolders, filenames in os.walk(input_dir):
+            if not filenames:
+                continue
+
+            clean_name = os.path.basename(dir_path).replace(" ", "_").replace("(", "").replace(")", "")
+
+            save_pcd_path = os.path.join(out_dir, clean_name + ".pcd")
+
+            try:
+                convert_mesh_folder_to_pcd(dir_path, save_pcd_path=save_pcd_path, num_points=100000)
+                processed_count += 1
+
+            except Exception as e:
+                print(f"✗ Failed to process {dir_path}: {e}")
+
+        print(f"\n{'='*60}")
+        print(f"- ALL DONE! Processed {processed_count} meshes")
+        print(f"{'='*60}")
+
     def predict_object(self, mesh_file_path, texture_file_path, save_dir_path, plot=False, target_num_points=100000):
         os.makedirs(save_dir_path, exist_ok=True)
         
@@ -44,7 +83,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={c_epoch}, val_acc={c_val_acc}")
 
         # obj to point cloud
-        points, colors_int, colors_rgb = helper.mesh.mesh_to_pointclouds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
+        points, colors_int, colors_rgb = mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
 
         chunks_indices = get_chunks_indices(target_num_points, c_num_points)
 
@@ -351,7 +390,7 @@ class Main:
                 save_dir_path = input("Save Dir Path: ").strip('"').strip()
                 self.predict_object(mesh_file_path, texture_file_path, save_dir_path, plot=True)
             elif choice == "4":
-                helper.mesh.mesh_to_pointclouds.make_dataset()
+                self.make_dataset()
 
 if __name__ == "__main__":
     Main().main()
