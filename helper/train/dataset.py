@@ -8,7 +8,7 @@ import configs
 from typing import Optional
 from helper.train.augment import Augmenter
 
-def sample_points(points, colors, labels=None):
+def _random_sampling_points(points, colors, labels=None):
     if len(points) < configs.NUM_SAMPLE_POINTS:
         raise ValueError(f"the number of points is less than NUM_SAMPLE_POINTS {len(points)}/{configs.NUM_SAMPLE_POINTS}")
     
@@ -58,7 +58,7 @@ def load_pcd_with_point_labels(directory, sampling=False):
         labels = data[:, 4].astype(int)
 
         if sampling:
-            points, color_ints, labels = sample_points(points, color_ints, labels=labels)
+            points, color_ints, labels = _random_sampling_points(points, color_ints, labels=labels)
         
         # Original sample
         point_clouds.append(points)
@@ -85,7 +85,7 @@ class PointCloudSegmentationDataset(Dataset):
         
         if self.labels is None:
             if self.sampling:
-                points, colors = sample_points(points, colors)
+                points, colors = _random_sampling_points(points, colors)
             
             points = transform_cloud_point(points)
             tensor_points = torch.FloatTensor(points)
@@ -100,7 +100,7 @@ class PointCloudSegmentationDataset(Dataset):
             labels = self.labels[idx]
 
             if self.sampling:
-                points, colors, labels = sample_points(points, colors, labels=labels)
+                points, colors, labels = _random_sampling_points(points, colors, labels=labels)
 
             if self.augmenter is not None:
                 #from helper.utils.plot import plot_point_cloud
