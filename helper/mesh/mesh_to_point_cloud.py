@@ -107,9 +107,9 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-def mesh_to_point_cloud(mesh_path, texture_path, pcd_out_path, num_points):
+def mesh_to_point_cloud(obj_path, texture_path, pcd_out_path, num_points):
     print("Loading mesh...")
-    mesh = trimesh.load(mesh_path, force='mesh')
+    mesh = trimesh.load(obj_path, force='mesh')
     
     if mesh.visual.uv is None:
         raise ValueError("Mesh does not have UV coordinates!")
@@ -173,19 +173,19 @@ def mesh_to_point_cloud(mesh_path, texture_path, pcd_out_path, num_points):
     return points, colors_int, colors_rgb
 
 def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=False):
-    mesh_file, tex_file, ao_file, norm_file = load_mesh_map(dir_path)
+    obj_path, textures_path = load_mesh_map(dir_path)
 
-    if mesh_file is None:
+    if obj_path is None:
         raise FileNotFoundError("No .obj file found in this folder.")
 
-    if tex_file is None:
+    if textures_path is None:
         raise FileNotFoundError("No texture file found in this folder.")
 
     try:
         print("\nCreating point cloud...")
         points, colors_int, colors_rgb = mesh_to_point_cloud(
-            mesh_file,
-            tex_file,
+            obj_path,
+            textures_path,
             pcd_out_path,
             num_points=num_points
         )
@@ -193,7 +193,7 @@ def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=Fal
         if visualize:
             _visualize_point_cloud(points, colors_rgb)
 
-        return points, colors_int, mesh_file
+        return points, colors_int, obj_path
 
     except Exception as e:
         raise RuntimeError(f"Error processing folder: {dir_path}") from e
