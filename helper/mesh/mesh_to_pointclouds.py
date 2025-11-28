@@ -86,7 +86,7 @@ def load_base_texture(tex_path):
     return np.array(texture, dtype=np.uint8)
 
 # ============= MESH TO POINT CLOUD =============
-def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points=100000):
+def mesh_to_point_cloud(mesh_path, texture_path, save_path, num_points):
     print("Loading mesh...")
     mesh = trimesh.load(mesh_path, force='mesh')
     
@@ -207,7 +207,7 @@ def visualize_pointcloud(points, colors_rgb):
     except ImportError:
         print("- Open3D not installed, skipping visualization")
 
-def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points=100000, visualize=False):
+def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points, visualize=False):
     mesh_file, tex_file, ao_file, norm_file = load_texture_maps(input_dir)
 
     if mesh_file is None:
@@ -272,7 +272,7 @@ def make_dataset():
         save_pcd_path = os.path.join(out_dir, clean_name + ".pcd")
 
         try:
-            convert_mesh_folder_to_pcd(foldername, save_pcd_path=save_pcd_path)
+            convert_mesh_folder_to_pcd(foldername, save_pcd_path=save_pcd_path, num_points=100000)
             processed_count += 1
 
         except Exception as e:
