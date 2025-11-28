@@ -3,7 +3,7 @@ import torch.optim as optim
 import os
 import config
 from helper.utils.log import logger
-from helper.train.dataset import load_pcd_with_point_labels, PointCloudSegmentationDataset
+from helper.train.dataset import PointCloudSegmentationDataset, load_pcd_with_point_labels, get_chunks_indices
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
 from helper.utils.plot import plot_training_stats, plot_point_cloud
@@ -46,7 +46,7 @@ class Main:
         # obj to point cloud
         points, colors_int, colors_rgb = helper.mesh.mesh_to_pointclouds.mesh_to_point_cloud(mesh_file_path, texture_file_path, save_pcd_path, num_points=target_num_points)
 
-        chunks_indices = helper.mesh.mesh_to_pointclouds.get_chunks_indices(target_num_points, c_num_points)
+        chunks_indices = get_chunks_indices(target_num_points, c_num_points)
 
         model = PointNetSegmentation(num_classes=c_num_classes).to(self.device)
 

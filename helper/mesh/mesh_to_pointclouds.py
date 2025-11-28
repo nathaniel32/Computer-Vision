@@ -179,12 +179,7 @@ def convert_mesh_folder_to_pcd(input_dir, save_pcd_path, num_points, visualize=F
     except Exception as e:
         raise RuntimeError(f"Error processing folder: {input_dir}") from e
 
-def get_chunks_indices(n_data, chunk_size):
-    rand_indices = np.random.permutation(n_data)
-    chunks_indices = [rand_indices[i:i + chunk_size] for i in range(0, n_data, chunk_size)]
-    return chunks_indices
-
-def make_dataset():
+def make_dataset() -> None:
     print("""Expected folder structure:
     input_dir/
         data_1/

@@ -118,3 +118,8 @@ class PointCloudSegmentationDataset(Dataset):
             tensor_colors = tensor_colors.transpose(0, 1)
 
             return tensor_points, tensor_colors, tensor_labels
+        
+def get_chunks_indices(n_data, chunk_size):
+    rand_indices = np.random.permutation(n_data)
+    chunks_indices = [rand_indices[i:i + chunk_size] for i in range(0, n_data, chunk_size)]
+    return chunks_indices
