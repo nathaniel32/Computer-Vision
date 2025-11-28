@@ -219,16 +219,14 @@ class Main:
             self.logger.clear()
         
         TRAIN_DIR = os.path.join(self.config.ds_root, "train")
-        VAL_DIR = os.path.join(self.config.ds_root, "val")
-
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
-        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, rand_sampling_min_num=self.config.num_sample_points)
-        
         self.logger.info(f"\nTrain samples: {len(train_point_clouds)}")
-        self.logger.info(f"Validation samples: {len(val_point_clouds)}")
-
         augmenter = Augmenter(config=self.config)
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, rand_sampling_min_num=self.config.num_sample_points)
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, rand_sampling_min_num=self.config.model_num_points)
+        
+        VAL_DIR = os.path.join(self.config.ds_root, "val")
+        val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, rand_sampling_min_num=self.config.model_num_points)
+        self.logger.info(f"Validation samples: {len(val_point_clouds)}")
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=0, drop_last=True)
@@ -326,7 +324,7 @@ class Main:
                         'epoch': epoch,
                         'val_acc': val_acc,
                         'classes': self.config.classes,
-                        'num_points': self.config.num_sample_points,
+                        'num_points': self.config.model_num_points,
                         'train_losses': train_losses,
                         'val_losses': val_losses,
                         'train_accuracies': train_accuracies,

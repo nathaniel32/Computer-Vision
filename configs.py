@@ -7,7 +7,7 @@ SEED = 42
 @dataclass
 class BaseConfig:
     name: str
-    num_sample_points: int
+    model_num_points: int
     epochs: int
     batch_size: int
     lr: float
@@ -18,7 +18,7 @@ class BaseConfig:
 
 hand_config = BaseConfig(
     name = "hand",
-    num_sample_points=10000,
+    model_num_points=10000,
     epochs=2000,
     batch_size=12,
     lr=1e-3,
