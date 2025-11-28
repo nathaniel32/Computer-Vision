@@ -107,7 +107,7 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: int):
+def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, total_num_points: int):
     print("Loading mesh...")
     # Load as scene to get all materials and textures
     scene = trimesh.load(obj_path, force='scene', process=False)
@@ -154,8 +154,8 @@ def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: in
     print(f"Texture shape: {texture.shape}")
     h, w = texture.shape[:2]
     
-    print(f"Sampling {num_points} points...")
-    points, face_indices = mesh.sample(num_points, return_index=True)
+    print(f"Sampling {total_num_points} points...")
+    points, face_indices = mesh.sample(total_num_points, return_index=True)
     
     # Get UV coordinates for sampled points
     faces_uv = mesh.visual.uv[mesh.faces[face_indices]]
@@ -203,7 +203,7 @@ def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: in
     
     return points, colors_int, colors_rgb
 
-def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points, visualize=False):
+def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, total_num_points, visualize=False):
     obj_path, textures_path = load_mesh_map(dir_path)
 
     try:
@@ -211,7 +211,7 @@ def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points, visua
         points, colors_int, colors_rgb = convert_mesh_to_point_cloud(
             obj_path,
             pcd_out_path,
-            num_points=num_points
+            total_num_points=total_num_points
         )
 
         if visualize:

@@ -46,7 +46,7 @@ class Main:
             pcd_out_path = os.path.join(out_dir, clean_name + ".pcd")
 
             try:
-                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points=500000, visualize=True)
+                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, total_num_points=500000, visualize=True)
                 processed_count += 1
 
             except Exception as e:
@@ -61,13 +61,13 @@ class Main:
         checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
         model_state_dict = checkpoint['model_state_dict']
         classes = checkpoint['classes']
-        num_points = checkpoint['num_points']
+        model_num_points = checkpoint['model_num_points']
         val_acc = checkpoint['val_acc']
         epoch = checkpoint['epoch']
         model = PointNetSegmentation(num_classes=len(classes)).to(self.device)
         model.load_state_dict(model_state_dict)
-        print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={num_points}")
-        return model, num_points, classes
+        print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
+        return model, model_num_points, classes
 
     def predict_object(self, input_dir_path, output_dir_path, plot=False, total_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
@@ -81,7 +81,7 @@ class Main:
 
             # obj to point cloud
             pcd_out_path = os.path.join(output_dir_path, "point_cloud.pcd")
-            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, num_points=total_num_points)
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, total_num_points=total_num_points)
 
             comb_points = []
             comb_color = []
@@ -324,7 +324,7 @@ class Main:
                         'epoch': epoch,
                         'val_acc': val_acc,
                         'classes': self.config.classes,
-                        'num_points': self.config.model_num_points,
+                        'model_num_points': self.config.model_num_points,
                         'train_losses': train_losses,
                         'val_losses': val_losses,
                         'train_accuracies': train_accuracies,
