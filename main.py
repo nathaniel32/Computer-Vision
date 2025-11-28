@@ -10,7 +10,7 @@ from helper.utils.plot import plot_training_stats, plot_point_cloud
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 import helper.mesh.mesh_remover
-from helper.mesh.mesh_converter import convert_mesh_folder_to_pcd
+from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder
 import numpy as np
 import random
 
@@ -42,7 +42,7 @@ class Main:
             pcd_out_path = os.path.join(out_dir, clean_name + ".pcd")
 
             try:
-                convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points=100000)
+                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points=100000)
                 processed_count += 1
 
             except Exception as e:
@@ -73,7 +73,7 @@ class Main:
 
             # obj to point cloud
             pcd_out_path = os.path.join(output_dir_path, "point_cloud.pcd")
-            points, colors_int, mesh_file_path = convert_mesh_folder_to_pcd(input_dir_path, pcd_out_path, num_points=100000)
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, num_points=100000)
 
             comb_points = []
             comb_color = []
