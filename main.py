@@ -53,7 +53,7 @@ class Main:
         print(f"{'='*60}")
 
     def predict_object(self, input_dir_path, output_dir_path, plot=False, target_num_points=100000):
-        os.makedirs(input_dir_path, exist_ok=True)
+        os.makedirs(output_dir_path, exist_ok=True)
         
         checkpoint = torch.load(self.save_model_path, weights_only=True, map_location=torch.device(self.device))
         c_model_state_dict = checkpoint['model_state_dict']
