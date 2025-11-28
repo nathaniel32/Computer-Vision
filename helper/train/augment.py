@@ -3,35 +3,50 @@ from scipy.spatial.transform import Rotation as R
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 import config
 import random
+from typing import List
 
 class ColorPartAugmenter:
-    def __init__(self, target_label=config.TARGET_CLASS_ID, p_aug=0.7):
-        self.target_label = target_label
+    def __init__(self, p_aug=0.7):
+        self.target_labels:List[int] = config.TARGET_CLASS_IDS
         self.p_aug = p_aug
         self.color_augment_list = self.get_augment_list()
     
-    def _get_mask(self, labels):
-        return labels == self.target_label
+    def _get_mask(self, labels, target_label:int):
+        return labels == target_label
     
     def _apply_negative(self, colors, labels):
         colors_aug = colors.copy()
-        mask = self._get_mask(labels)
-        colors_aug[mask] = 1.0 - colors_aug[mask]
+        for target_label in self.target_labels:
+            if not self._should_augment():
+                continue
+
+            mask = self._get_mask(labels, target_label)
+            if not np.any(mask):
+                continue
+
+            colors_aug[mask] = 1.0 - colors_aug[mask]
         return colors_aug
     
     def _apply_hue_shift(self, colors, labels, use_negative=False):
         colors_aug = colors.copy()
-        mask = self._get_mask(labels)
-        
-        if use_negative:
-            colors_aug[mask] = 1.0 - colors_aug[mask]
-        
-        hue = random.uniform(0, 1.0)  # Hue range [0, 1]
-        
-        hsv = rgb_to_hsv(colors_aug[mask])
-        hsv[:, 0] = hue
-        hsv[:, 1] = np.clip(hsv[:, 1] * 1.2, 0, 1)
-        colors_aug[mask] = hsv_to_rgb(hsv)
+
+        for target_label in self.target_labels:
+            if not self._should_augment():
+                continue
+
+            mask = self._get_mask(labels, target_label)
+            if not np.any(mask):
+                continue
+            
+            if use_negative:
+                colors_aug[mask] = 1.0 - colors_aug[mask]
+            
+            hue = random.uniform(0, 1.0)  # Hue range [0, 1]
+            
+            hsv = rgb_to_hsv(colors_aug[mask])
+            hsv[:, 0] = hue
+            hsv[:, 1] = np.clip(hsv[:, 1] * 1.2, 0, 1)
+            colors_aug[mask] = hsv_to_rgb(hsv)
         
         return colors_aug
         
