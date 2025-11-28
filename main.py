@@ -13,6 +13,7 @@ import helper.mesh.mesh_remover
 from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder
 import numpy as np
 import random
+from helper.train.augment import Augmenter
 
 random.seed(configs.SEED)
 np.random.seed(configs.SEED)
@@ -226,7 +227,8 @@ class Main:
         self.logger.info(f"\nTrain samples: {len(train_point_clouds)}")
         self.logger.info(f"Validation samples: {len(val_point_clouds)}")
 
-        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augment=True, sampling=True)
+        augmenter = Augmenter()
+        train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augmenter=augmenter, sampling=True)
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=0, drop_last=True)

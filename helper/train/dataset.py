@@ -5,6 +5,7 @@ import numpy as np
 from glob import glob
 import os
 import configs
+from typing import Optional
 from helper.train.augment import Augmenter
 
 def sample_points(points, colors, labels=None):
@@ -68,13 +69,12 @@ def load_pcd_with_point_labels(directory, sampling=False):
     return point_clouds, color_clouds, label_clouds
 
 class PointCloudSegmentationDataset(Dataset):
-    def __init__(self, point_clouds, color_clouds, labels=None, augment=False, sampling=False):
+    def __init__(self, point_clouds, color_clouds, labels=None, augmenter:Optional[Augmenter]=None, sampling=False):
         self.point_clouds = point_clouds
         self.color_clouds = [transform_color(c) for c in color_clouds]
         self.labels = labels
-        self.augment = augment
+        self.augmenter = augmenter
         self.sampling = sampling
-        self.augmenter = Augmenter()
 
     def __len__(self):
         return len(self.point_clouds)
@@ -102,7 +102,7 @@ class PointCloudSegmentationDataset(Dataset):
             if self.sampling:
                 points, colors, labels = sample_points(points, colors, labels=labels)
 
-            if self.augment:
+            if self.augmenter is not None:
                 #from helper.utils.plot import plot_point_cloud
                 #plot_point_cloud(points, colors, true_label=labels)
                 points, colors, labels = self.augmenter.augment(points, colors, labels)

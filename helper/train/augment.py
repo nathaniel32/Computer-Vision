@@ -1,13 +1,12 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
-import configs
 import random
-from typing import List
+from configs import BaseConfig
 
 class ColorPartAugmenter:
-    def __init__(self, p_aug=0.7):
-        self.target_labels:List[int] = configs.TARGET_COLOR_AUGMENT_LABELS
+    def __init__(self, config:BaseConfig, p_aug=0.7):
+        self.target_labels = config.target_color_augment_labels
         self.p_aug = p_aug
         self.color_augment_list = self.get_augment_list()
     
@@ -290,8 +289,8 @@ class ObjectAugmenter:
         return aug_points, aug_colors, aug_labels
 
 class Augmenter:
-    def __init__(self):
-        self.color_part_augmenter = ColorPartAugmenter()
+    def __init__(self, config:BaseConfig):
+        self.color_part_augmenter = ColorPartAugmenter(config)
         self.object_augmenter = ObjectAugmenter()
     
     def augment(self, points, colors, labels):
