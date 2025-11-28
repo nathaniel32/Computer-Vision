@@ -42,7 +42,7 @@ class Main:
             pcd_out_path = os.path.join(out_dir, clean_name + ".pcd")
 
             try:
-                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points=100000)
+                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points=500000, visualize=True)
                 processed_count += 1
 
             except Exception as e:

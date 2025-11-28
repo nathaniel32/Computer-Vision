@@ -203,7 +203,7 @@ def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, num_points: in
     
     return points, colors_int, colors_rgb
 
-def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points, visualize=True):
+def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, num_points, visualize=False):
     obj_path, textures_path = load_mesh_map(dir_path)
 
     try:
