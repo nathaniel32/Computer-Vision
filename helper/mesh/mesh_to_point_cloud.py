@@ -107,7 +107,7 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-def mesh_to_point_cloud(obj_path, texture_path, pcd_out_path, num_points):
+def convert_mesh_to_point_cloud(obj_path:str, texture_path:List[str], pcd_out_path:str, num_points:int):
     print("Loading mesh...")
     mesh = trimesh.load(obj_path, force='mesh')
     
@@ -183,7 +183,7 @@ def convert_mesh_folder_to_pcd(dir_path, pcd_out_path, num_points, visualize=Fal
 
     try:
         print("\nCreating point cloud...")
-        points, colors_int, colors_rgb = mesh_to_point_cloud(
+        points, colors_int, colors_rgb = convert_mesh_to_point_cloud(
             obj_path,
             textures_path,
             pcd_out_path,
