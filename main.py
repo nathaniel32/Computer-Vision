@@ -1,8 +1,8 @@
 import torch
 import torch.optim as optim
 import os
-import config
-from helper.utils.log import logger
+import configs
+from helper.utils.log import Logging
 from helper.train.dataset import PointCloudSegmentationDataset, load_pcd_with_point_labels, get_chunks_indices
 from torch.utils.data import DataLoader
 from model import PointNetSegmentation
@@ -14,19 +14,22 @@ from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder
 import numpy as np
 import random
 
-random.seed(config.SEED)
-np.random.seed(config.SEED)
-torch.manual_seed(config.SEED)
-torch.cuda.manual_seed(config.SEED)
-torch.cuda.manual_seed_all(config.SEED)
+random.seed(configs.SEED)
+np.random.seed(configs.SEED)
+torch.manual_seed(configs.SEED)
+torch.cuda.manual_seed(configs.SEED)
+torch.cuda.manual_seed_all(configs.SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 class Main:
-    def __init__(self):
+    def __init__(self, config:configs.BaseConfig):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.save_model_path = os.path.join(config.RES_DIR, "best_model.pth")
-        os.makedirs(config.RES_DIR, exist_ok=True)
+        self.config = config
+        self.out_root_dir = os.path.join(configs.RES_ROOT_DIR, config.name)
+        self.logger = Logging(log_dir=self.out_root_dir)
+        self.save_model_path = os.path.join(self.out_root_dir, "best_model.pth")
+        os.makedirs(self.out_root_dir, exist_ok=True)
 
     def make_dataset(self, input_dir, out_dir) -> None:
         os.makedirs(out_dir, exist_ok=True)
@@ -191,7 +194,7 @@ class Main:
         return avg_loss, accuracy
     
     def test(self):
-        TEST_DIR = os.path.join(config.DS_ROOT, "test")
+        TEST_DIR = os.path.join(self.config.ds_root, "test")
         test_point_clouds, test_colors, test_labels = load_pcd_with_point_labels(TEST_DIR, sampling=True)
         test_dataset = PointCloudSegmentationDataset(test_point_clouds, test_colors, labels=test_labels)
 
@@ -212,39 +215,39 @@ class Main:
     
     def train(self, val_interval=1, warmup_epochs=5, resume=False):
         if not resume:
-            logger.clear()
+            self.logger.clear()
         
-        TRAIN_DIR = os.path.join(config.DS_ROOT, "train")
-        VAL_DIR = os.path.join(config.DS_ROOT, "val")
+        TRAIN_DIR = os.path.join(self.config.ds_root, "train")
+        VAL_DIR = os.path.join(self.config.ds_root, "val")
 
         train_point_clouds, train_colors, train_labels = load_pcd_with_point_labels(TRAIN_DIR)
         val_point_clouds, val_colors, val_labels = load_pcd_with_point_labels(VAL_DIR, sampling=True)
         
-        logger.info(f"\nTrain samples: {len(train_point_clouds)}")
-        logger.info(f"Validation samples: {len(val_point_clouds)}")
+        self.logger.info(f"\nTrain samples: {len(train_point_clouds)}")
+        self.logger.info(f"Validation samples: {len(val_point_clouds)}")
 
         train_dataset = PointCloudSegmentationDataset(train_point_clouds, train_colors, labels=train_labels, augment=True, sampling=True)
         val_dataset = PointCloudSegmentationDataset(val_point_clouds, val_colors, labels=val_labels)
 
-        train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=0, drop_last=True)
-        val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=0)
+        train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=0, drop_last=True)
+        val_loader = DataLoader(val_dataset, batch_size=self.config.batch_size, shuffle=False, num_workers=0)
 
-        logger.info(f"\nTrain batches: {len(train_loader)}")
-        logger.info(f"Validation batches: {len(val_loader)}")
+        self.logger.info(f"\nTrain batches: {len(train_loader)}")
+        self.logger.info(f"Validation batches: {len(val_loader)}")
 
-        num_classes = len(config.CLASSES)
+        num_classes = len(self.config.classes)
         model = PointNetSegmentation(num_classes=num_classes).to(self.device)
 
         alpha = compute_alpha(train_labels=train_labels, num_classes=num_classes).to(self.device)
         criterion = FocalLoss(alpha=alpha)
-        optimizer = optim.Adam(model.parameters(), lr=config.LR)
+        optimizer = optim.Adam(model.parameters(), lr=self.config.lr)
         
         # Initialize warm-up scheduler
         warmup_scheduler = WarmupScheduler(
             optimizer=optimizer,
             warmup_epochs=warmup_epochs,
-            initial_lr=config.LR * 0.1,
-            target_lr=config.LR
+            initial_lr=self.config.lr * 0.1,
+            target_lr=self.config.lr
         )
         
         # Main scheduler
@@ -263,7 +266,7 @@ class Main:
             if not os.path.exists(self.save_model_path):
                 raise FileNotFoundError(f"Checkpoint not found: {self.save_model_path}")
             
-            logger.info(f"\n=== Resuming from checkpoint ===")
+            self.logger.info(f"\n=== Resuming from checkpoint ===")
             checkpoint = torch.load(self.save_model_path, map_location=self.device)
             
             # Load all required states (error if missing)
@@ -280,22 +283,22 @@ class Main:
             train_accuracies = checkpoint['train_accuracies']
             val_accuracies = checkpoint['val_accuracies']
             
-            logger.info(f"Resumed from epoch {start_epoch}")
-            logger.info(f"Best validation accuracy: {best_val_acc:.2f}%")
-            logger.info(f"Patience counter: {patience_counter}")
+            self.logger.info(f"Resumed from epoch {start_epoch}")
+            self.logger.info(f"Best validation accuracy: {best_val_acc:.2f}%")
+            self.logger.info(f"Patience counter: {patience_counter}")
         else:
-            logger.info(f"\n=== Training with {warmup_epochs} epochs warm-up ===")
-            logger.info(f"Initial LR: {config.LR * 0.1:.2e} -> Target LR: {config.LR:.2e}")
+            self.logger.info(f"\n=== Training with {warmup_epochs} epochs warm-up ===")
+            self.logger.info(f"Initial LR: {self.config.lr * 0.1:.2e} -> Target LR: {self.config.lr:.2e}")
         
-        for epoch in range(start_epoch, config.EPOCHS):
-            logger.info(f'\nEpoch {epoch+1}/{config.EPOCHS}')
-            logger.info('-' * 60)
+        for epoch in range(start_epoch, self.config.epochs):
+            self.logger.info(f'\nEpoch {epoch+1}/{self.config.epochs}')
+            self.logger.info('-' * 60)
             
             # Apply warm-up
             if not resume and epoch < warmup_epochs:
                 warmup_scheduler.step()
                 current_lr = warmup_scheduler.get_lr()
-                logger.info(f'Warm-up LR: {current_lr:.2e}')
+                self.logger.info(f'Warm-up LR: {current_lr:.2e}')
             
             train_loss, train_acc = self._train(model, train_loader, criterion, optimizer)
             val_loss, val_acc = self._eval(model, val_loader, criterion)
@@ -305,8 +308,8 @@ class Main:
             train_accuracies.append(train_acc)
             val_accuracies.append(val_acc)
 
-            logger.info(f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%')
-            logger.info(f'Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%')
+            self.logger.info(f'Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%')
+            self.logger.info(f'Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%')
             
             # After warm-up period
             if resume or epoch >= warmup_epochs:
@@ -320,8 +323,8 @@ class Main:
                         'scheduler_state_dict': main_scheduler.state_dict(),
                         'epoch': epoch,
                         'val_acc': val_acc,
-                        'classes': config.CLASSES,
-                        'num_points': config.NUM_SAMPLE_POINTS,
+                        'classes': self.config.classes,
+                        'num_points': self.config.num_sample_points,
                         'train_losses': train_losses,
                         'val_losses': val_losses,
                         'train_accuracies': train_accuracies,
@@ -329,32 +332,32 @@ class Main:
                         'patience_counter': patience_counter,
                         'best_val_acc': best_val_acc
                     }, self.save_model_path)
-                    logger.info(f'Saved best model with validation accuracy: {val_acc:.2f}%')
+                    self.logger.info(f'Saved best model with validation accuracy: {val_acc:.2f}%')
                 else:
                     patience_counter += 1
-                    logger.info(f"- Patience: {patience_counter}/{config.PATIENCE}")
+                    self.logger.info(f"- Patience: {patience_counter}/{self.config.patience}")
 
-                    if patience_counter >= config.PATIENCE:
-                        logger.info("= Early stopping triggered!")
+                    if patience_counter >= self.config.patience:
+                        self.logger.info("= Early stopping triggered!")
                         break
             
                 # Apply main scheduler
                 main_scheduler.step(val_loss)
                 current_lr = optimizer.param_groups[0]['lr']
-                logger.info(f'Current LR: {current_lr:.2e}')
+                self.logger.info(f'Current LR: {current_lr:.2e}')
 
-        logger.info(f"\n=== Training Complete ===")
-        logger.info(f"Best Validation Accuracy: {best_val_acc:.2f}%")
+        self.logger.info(f"\n=== Training Complete ===")
+        self.logger.info(f"Best Validation Accuracy: {best_val_acc:.2f}%")
 
         plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies)
 
     def main(self):
         while True:
-            logger.print("\n=== Menu ===")
-            logger.print("1. Train Model")
-            logger.print("2. Test Model")
-            logger.print("3. Predict Object")
-            logger.print("4. Mesh to point cloud")
+            self.logger.print("\n=== Menu ===")
+            self.logger.print("1. Train Model")
+            self.logger.print("2. Test Model")
+            self.logger.print("3. Predict Object")
+            self.logger.print("4. Mesh to point cloud")
 
             choice = input("Nr: ").strip()
 
@@ -387,4 +390,4 @@ class Main:
                 self.make_dataset(input_dir, out_dir)
 
 if __name__ == "__main__":
-    Main().main()
+    Main(configs.hand_config).main()

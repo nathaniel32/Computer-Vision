@@ -1,13 +1,13 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
-import config
+import configs
 import random
 from typing import List
 
 class ColorPartAugmenter:
     def __init__(self, p_aug=0.7):
-        self.target_labels:List[int] = config.TARGET_COLOR_AUGMENT_LABELS
+        self.target_labels:List[int] = configs.TARGET_COLOR_AUGMENT_LABELS
         self.p_aug = p_aug
         self.color_augment_list = self.get_augment_list()
     

@@ -1,10 +1,9 @@
 import os
-import config
 
 class Logging:
-    def __init__(self, file_name="log.txt"):
-        self.file_path = os.path.join(config.LOG_DIR, file_name)
-        os.makedirs(config.LOG_DIR, exist_ok=True)
+    def __init__(self, log_dir, file_name="log.txt"):
+        self.file_path = os.path.join(log_dir, file_name)
+        os.makedirs(log_dir, exist_ok=True)
 
     def _write_to_file(self, message: str) -> None:
         with open(self.file_path, "a", encoding="utf-8") as f:
@@ -38,5 +37,3 @@ class Logging:
             msg = f"Error: {args_str}"
             print(msg)
             self._write_to_file(msg)
-
-logger = Logging()

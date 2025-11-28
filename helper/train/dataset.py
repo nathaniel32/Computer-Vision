@@ -4,14 +4,14 @@ from tqdm import tqdm
 import numpy as np
 from glob import glob
 import os
-import config
+import configs
 from helper.train.augment import Augmenter
 
 def sample_points(points, colors, labels=None):
-    if len(points) < config.NUM_SAMPLE_POINTS:
-        raise ValueError(f"the number of points is less than NUM_SAMPLE_POINTS {len(points)}/{config.NUM_SAMPLE_POINTS}")
+    if len(points) < configs.NUM_SAMPLE_POINTS:
+        raise ValueError(f"the number of points is less than NUM_SAMPLE_POINTS {len(points)}/{configs.NUM_SAMPLE_POINTS}")
     
-    idx = np.random.choice(len(points), config.NUM_SAMPLE_POINTS, replace=False)
+    idx = np.random.choice(len(points), configs.NUM_SAMPLE_POINTS, replace=False)
     sampled_points = points[idx]
     sampled_colors = colors[idx]
 

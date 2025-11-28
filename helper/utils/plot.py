@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import config
+import configs
 import open3d as o3d
 import numpy as np
 
@@ -60,7 +60,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
             })
             
             ax = fig.add_subplot(1, num_subplots, subplot_idx, projection='3d')
-            for idx, _class in enumerate(config.CLASSES):
+            for idx, _class in enumerate(configs.CLASSES):
                 c_df = df_true[df_true['label'] == idx]
                 if len(c_df) > 0:
                     ax.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
@@ -82,7 +82,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
             })
             
             ax = fig.add_subplot(1, num_subplots, subplot_idx, projection='3d')
-            for idx, _class in enumerate(config.CLASSES):
+            for idx, _class in enumerate(configs.CLASSES):
                 c_df = df_pred[df_pred['label'] == idx]
                 if len(c_df) > 0:
                     ax.scatter(c_df['x'], c_df['y'], c_df['z'], c=[_class['color']] * len(c_df), 
@@ -122,7 +122,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
             pcd_true.points = o3d.utility.Vector3dVector(point_cloud)
             
             true_colors = np.zeros_like(point_cloud, dtype=np.float64)
-            for idx, _class in enumerate(config.CLASSES):
+            for idx, _class in enumerate(configs.CLASSES):
                 mask = (true_label == idx)
                 if mask.any():
                     color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
@@ -143,7 +143,7 @@ def plot_point_cloud(point_cloud, color_plot, pred_label=None, true_label=None, 
             pcd_pred.points = o3d.utility.Vector3dVector(point_cloud)
             
             pred_colors = np.zeros_like(point_cloud, dtype=np.float64)
-            for idx, _class in enumerate(config.CLASSES):
+            for idx, _class in enumerate(configs.CLASSES):
                 mask = (pred_label == idx)
                 if mask.any():
                     color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
