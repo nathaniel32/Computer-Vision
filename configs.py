@@ -1,8 +1,6 @@
 import os
 from dataclasses import dataclass
-
-RES_ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result")
-SEED = 42
+from typing import List
 
 @dataclass
 class BaseConfig:
@@ -15,6 +13,13 @@ class BaseConfig:
     ds_root: str
     target_color_augment_labels: list
     classes: list
+
+    def __post_init__(self):
+        CONFIG_LIST.append(self)
+
+RES_ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result")
+SEED = 42
+CONFIG_LIST:List[BaseConfig] = []
 
 hand_config = BaseConfig(
     name = "hand",
@@ -50,5 +55,3 @@ marker_config = BaseConfig(
         {"label": "Yellow", "color": "#FFFF00"}
     ]
 )
-
-selected_config = marker_config

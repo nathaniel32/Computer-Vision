@@ -69,7 +69,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
         return model, model_num_points, classes
 
-    def predict_object(self, input_dir_path, output_dir_path, plot=False, total_num_points=200000):
+    def predict_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False, total_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
         model, model_num_points, model_classes = self._get_and_load_model()
@@ -115,7 +115,6 @@ class Main:
                 plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
             
             # trim mesh
-            keep_label_id = 1
             trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
             helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
             
@@ -358,7 +357,7 @@ class Main:
             self.logger.print("\n=== Menu ===")
             self.logger.print("1. Train Model")
             self.logger.print("2. Test Model")
-            self.logger.print("3. Predict Object")
+            self.logger.print("3. Predicting + Cleaning")
             self.logger.print("4. Mesh to point cloud")
 
             choice = input("Nr: ").strip()
@@ -373,7 +372,8 @@ class Main:
             elif choice == "3":
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
-                self.predict_object(input_dir_path, output_dir_path, plot=True)
+                keep_label_id = input("Keep Label ID: ")
+                self.predict_object(input_dir_path, output_dir_path, keep_label_id, plot=True)
             elif choice == "4":
                 print("""Expected folder structure:
                 input_dir/
@@ -392,4 +392,8 @@ class Main:
                 self.make_dataset(input_dir, out_dir)
 
 if __name__ == "__main__":
-    Main(configs.selected_config).main()
+    for i, conf in enumerate(configs.CONFIG_LIST):
+        print(f"{i}: {conf.name}")
+
+    selected_config = int(input("ID: "))
+    Main(configs.CONFIG_LIST[selected_config]).main()
