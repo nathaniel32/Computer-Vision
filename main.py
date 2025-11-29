@@ -111,6 +111,9 @@ class Main:
             comb_color = np.array(comb_color)
             comb_pred_label = np.array(comb_pred_label)
             
+            if plot:
+                plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
+            
             # trim mesh
             keep_label_id = 1
             trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
@@ -119,7 +122,6 @@ class Main:
             if plot:
                 keep_indecies = comb_pred_label == keep_label_id # keep
                 remove_indecies = comb_pred_label != keep_label_id # remove
-                plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
                 plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], model_classes, pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
                 plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], model_classes, pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
     
