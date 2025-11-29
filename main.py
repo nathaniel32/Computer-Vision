@@ -390,4 +390,4 @@ class Main:
                 self.make_dataset(input_dir, out_dir)
 
 if __name__ == "__main__":
-    Main(configs.hand_config).main()
+    Main(configs.selected_config).main()
