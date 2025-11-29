@@ -134,25 +134,26 @@ class Main:
         if plot:
             plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d")
 
-        marker_indecies = pred_label == 1
-        results, center = measure_marker_all_axes(points[marker_indecies])
+        for label in self.config.scale_labels:
+            marker_indecies = pred_label == label
+            results, center = measure_marker_all_axes(points[marker_indecies])
 
-        scale_factor, avg_diameter = calculate_scale_factor(results, real_marker_diameter_cm)
-                
-        print("\n=== Summary ===")
-        print(f"Marker measurements in model units:")
-        print(f"  Diameter 1 (PC1): {results['PC1']['length']:.4f}")
-        print(f"  Diameter 2 (PC2): {results['PC2']['length']:.4f}")
-        print(f"  Thickness (PC3):  {results['PC3']['length']:.4f}")
-        print(f"  Average diameter: {avg_diameter:.4f}")
-        print(f"\nScale factor (cm/unit): {scale_factor:.4f}")
-        print(f"\nScaled measurements in cm:")
-        print(f"  Diameter 1: {results['PC1']['length'] * scale_factor:.4f} cm")
-        print(f"  Diameter 2: {results['PC2']['length'] * scale_factor:.4f} cm")
-        print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
+            scale_factor, avg_diameter = calculate_scale_factor(results, real_marker_diameter_cm)
+                    
+            print("\n=== Summary ===")
+            print(f"Marker measurements in model units:")
+            print(f"  Diameter 1 (PC1): {results['PC1']['length']:.4f}")
+            print(f"  Diameter 2 (PC2): {results['PC2']['length']:.4f}")
+            print(f"  Thickness (PC3):  {results['PC3']['length']:.4f}")
+            print(f"  Average diameter: {avg_diameter:.4f}")
+            print(f"\nScale factor (cm/unit): {scale_factor:.4f}")
+            print(f"\nScaled measurements in cm:")
+            print(f"  Diameter 1: {results['PC1']['length'] * scale_factor:.4f} cm")
+            print(f"  Diameter 2: {results['PC2']['length'] * scale_factor:.4f} cm")
+            print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
 
-        # Plot
-        plot_marker_all_axes(points, center, results)
+            # Plot
+            plot_marker_all_axes(points, center, results)
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()

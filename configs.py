@@ -12,6 +12,7 @@ class BaseConfig:
     patience: int
     ds_root: str
     target_color_augment_labels: list
+    scale_labels: list
     classes: list
 
     def __post_init__(self):
@@ -28,9 +29,9 @@ hand_config = BaseConfig(
     batch_size=12,
     lr=1e-3,
     patience=20,
-
     ds_root=r"D:\Datasets\3d\medico_part_color\datasets\latest",
     target_color_augment_labels=[0, 1],
+    scale_labels=[1],
     classes=[
         {"label": "background", "color": "#FFFFFF"},
         {"label": "hand", "color": "#00FF00"}
@@ -44,9 +45,9 @@ marker_config = BaseConfig(
     batch_size=2,
     lr=1e-3,
     patience=20,
-
     ds_root=r"D:\Datasets\3d\medico_marker\latest",
     target_color_augment_labels=[],
+    scale_labels=[1, 2, 3, 4],
     classes=[
         {"label": "background", "color": "#FFFFFF"},
         {"label": "Red", "color": "#FF0000"},
