@@ -153,7 +153,8 @@ class Main:
             print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
 
             # Plot
-            plot_marker_all_axes(points, center, results)
+            #plot_marker_all_axes(points, center, results)
+            plot_marker_all_axes(points[marker_indecies], center, results)
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()
