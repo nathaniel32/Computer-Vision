@@ -69,7 +69,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
         return model, model_num_points, classes
 
-    def predict_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False, total_num_points=200000):
+    def cleaning_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False, total_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
         model, model_num_points, model_classes = self._get_and_load_model()
@@ -357,8 +357,9 @@ class Main:
             self.logger.print("\n=== Menu ===")
             self.logger.print("1. Train Model")
             self.logger.print("2. Test Model")
-            self.logger.print("3. Predicting + Cleaning")
-            self.logger.print("4. Mesh to point cloud")
+            self.logger.print("3. Cleaning Object")
+            self.logger.print("4. Scaling Object")
+            self.logger.print("5. Mesh to point cloud")
 
             choice = input("Nr: ").strip()
 
@@ -373,8 +374,10 @@ class Main:
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
                 keep_label_id = input("Keep Label ID: ")
-                self.predict_object(input_dir_path, output_dir_path, keep_label_id, plot=True)
+                self.cleaning_object(input_dir_path, output_dir_path, keep_label_id, plot=True)
             elif choice == "4":
+                print("scaling..")
+            elif choice == "5":
                 print("""Expected folder structure:
                 input_dir/
                     data_1/
