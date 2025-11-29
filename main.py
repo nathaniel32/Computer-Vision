@@ -14,6 +14,7 @@ from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder
 import numpy as np
 import random
 from helper.train.augment import Augmenter
+from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes
 
 random.seed(configs.SEED)
 np.random.seed(configs.SEED)
@@ -114,24 +115,44 @@ class Main:
             return comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path
 
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False):
-        comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+        points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
         if plot:
-            plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
+            plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d")
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
-        helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
+        helper.mesh.mesh_remover.remove_object_part_v2(points, pred_label, mesh_file_path, trim_out_path, keep_label_id)
         
         if plot:
-            keep_indecies = comb_pred_label == keep_label_id # keep
-            remove_indecies = comb_pred_label != keep_label_id # remove
-            plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], model_classes, pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
-            plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], model_classes, pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
+            keep_indecies = pred_label == keep_label_id # keep
+            remove_indecies = pred_label != keep_label_id # remove
+            plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool="open3d")
+            plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool="open3d")
 
-    def scaling_object(self, input_dir_path, output_dir_path, plot=False):
-        comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot=False):
+        points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
         if plot:
-            plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
+            plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d")
+
+        marker_indecies = pred_label == 1
+        results, center = measure_marker_all_axes(points[marker_indecies])
+
+        scale_factor, avg_diameter = calculate_scale_factor(results, real_marker_diameter_cm)
+                
+        print("\n=== Summary ===")
+        print(f"Marker measurements in model units:")
+        print(f"  Diameter 1 (PC1): {results['PC1']['length']:.4f}")
+        print(f"  Diameter 2 (PC2): {results['PC2']['length']:.4f}")
+        print(f"  Thickness (PC3):  {results['PC3']['length']:.4f}")
+        print(f"  Average diameter: {avg_diameter:.4f}")
+        print(f"\nScale factor (cm/unit): {scale_factor:.4f}")
+        print(f"\nScaled measurements in cm:")
+        print(f"  Diameter 1: {results['PC1']['length'] * scale_factor:.4f} cm")
+        print(f"  Diameter 2: {results['PC2']['length'] * scale_factor:.4f} cm")
+        print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
+
+        # Plot
+        plot_marker_all_axes(points, center, results)
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()
@@ -388,7 +409,8 @@ class Main:
                 print("scaling..")
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
-                self.scaling_object(input_dir_path, output_dir_path, plot=True)
+                real_marker_diameter_cm = float(input("Marker Diameter (cm): "))
+                self.scaling_object(input_dir_path, output_dir_path, real_marker_diameter_cm, plot=True)
             elif choice == "5":
                 print("""Expected folder structure:
                 input_dir/
