@@ -68,8 +68,8 @@ class Main:
         model.load_state_dict(model_state_dict)
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
         return model, model_num_points, classes
-
-    def cleaning_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False, total_num_points=200000):
+    
+    def _predicting(self, input_dir_path, output_dir_path, total_num_points=200000):
         os.makedirs(output_dir_path, exist_ok=True)
         
         model, model_num_points, model_classes = self._get_and_load_model()
@@ -110,19 +110,28 @@ class Main:
             comb_points = np.array(comb_points)
             comb_color = np.array(comb_color)
             comb_pred_label = np.array(comb_pred_label)
-            
-            if plot:
-                plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
-            
-            # trim mesh
-            trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
-            helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
-            
-            if plot:
-                keep_indecies = comb_pred_label == keep_label_id # keep
-                remove_indecies = comb_pred_label != keep_label_id # remove
-                plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], model_classes, pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
-                plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], model_classes, pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
+
+            return comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path
+
+    def cleaning_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False):
+        comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+        if plot:
+            plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
+        
+        # trim mesh
+        trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
+        helper.mesh.mesh_remover.remove_object_part_v2(comb_points, comb_pred_label, mesh_file_path, trim_out_path, keep_label_id)
+        
+        if plot:
+            keep_indecies = comb_pred_label == keep_label_id # keep
+            remove_indecies = comb_pred_label != keep_label_id # remove
+            plot_point_cloud(comb_points[keep_indecies], comb_color[keep_indecies], model_classes, pred_label=comb_pred_label[keep_indecies], plot_tool="open3d")
+            plot_point_cloud(comb_points[remove_indecies], comb_color[remove_indecies], model_classes, pred_label=comb_pred_label[remove_indecies], plot_tool="open3d")
+
+    def scaling_object(self, input_dir_path, output_dir_path, plot=False):
+        comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+        if plot:
+            plot_point_cloud(comb_points, comb_color, model_classes, pred_label=comb_pred_label, plot_tool="open3d")
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()
@@ -373,10 +382,13 @@ class Main:
             elif choice == "3":
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
-                keep_label_id = input("Keep Label ID: ")
+                keep_label_id = int(input("Keep Label ID: "))
                 self.cleaning_object(input_dir_path, output_dir_path, keep_label_id, plot=True)
             elif choice == "4":
                 print("scaling..")
+                input_dir_path = input("Input Dir Path: ").strip('"').strip()
+                output_dir_path = input("Output Dir Path: ").strip('"').strip()
+                self.scaling_object(input_dir_path, output_dir_path, plot=True)
             elif choice == "5":
                 print("""Expected folder structure:
                 input_dir/
