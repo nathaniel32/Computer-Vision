@@ -221,7 +221,7 @@ def calculate_scale_factor(all_markers_metrics, real_diameter_cm, circularity_th
     return best_marker['scale_factor']
 
 if __name__ == "__main__":
-    def read_pcd_label(filename, target_label=1):
+    def read_pcd_label(filename, target_label):
         """
         Read ASCII PCD and extract points with a specific label.
         Automatically detect column positions from FIELDS header.
