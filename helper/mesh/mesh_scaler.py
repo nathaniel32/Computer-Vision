@@ -189,7 +189,7 @@ def calculate_scale_factor(all_markers_metrics, real_diameter_cm, circularity_th
             filtered_markers.append(marker)
             print(f"  Marker {marker['index']}: scale={marker['scale_factor']:.4f}, quality={marker['quality_score']:.3f} ✓")
         else:
-            print(f"  Marker {marker['index']}: scale={marker['scale_factor']:.4f} ❌ OUTLIER (deviation={deviation:.4f})")
+            print(f"  Marker {marker['index']}: scale={marker['scale_factor']:.4f} - OUTLIER (deviation={deviation:.4f})")
     
     if len(filtered_markers) == 0:
         print("- WARNING: All markers are outliers, using best quality marker anyway")
