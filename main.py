@@ -10,7 +10,7 @@ from helper.utils.plot import plot_training_stats, plot_point_cloud
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 import helper.mesh.mesh_remover
-from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder
+from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 import numpy as np
 import random
 from helper.train.augment import Augmenter
@@ -44,10 +44,11 @@ class Main:
 
             clean_name = os.path.basename(dir_path).replace(" ", "_").replace("(", "").replace(")", "")
 
-            pcd_out_path = os.path.join(out_dir, clean_name + ".pcd")
+            filename = clean_name + ".pcd"
 
             try:
-                convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, total_num_points=total_num_points, visualize=True)
+                points, colors_int, obj_path = convert_mesh_to_point_cloud_folder(dir_path, total_num_points=total_num_points, visualize=True)
+                save_point_cloud_in_pcd(points, colors_int, out_dir, filename=filename)
                 processed_count += 1
 
             except Exception as e:
@@ -81,8 +82,7 @@ class Main:
             chunks_indices = get_chunks_indices(total_num_points, model_num_points)
 
             # obj to point cloud
-            pcd_out_path = os.path.join(output_dir_path, "point_cloud.pcd")
-            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, pcd_out_path, total_num_points=total_num_points)
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, total_num_points=total_num_points)
 
             comb_points = []
             comb_color = []
@@ -111,6 +111,8 @@ class Main:
             comb_points = np.array(comb_points)
             comb_color = np.array(comb_color)
             comb_pred_label = np.array(comb_pred_label)
+
+            save_point_cloud_in_pcd(points, colors_int, output_dir_path, label=comb_pred_label)
 
             return comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path
 
