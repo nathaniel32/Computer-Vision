@@ -118,18 +118,18 @@ class Main:
 
             return comb_points, comb_color_norm, comb_pred_label, model_classes, mesh_file_path
 
-    def cleaning_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False):
+    def cleaning_object(self, input_dir_path, output_dir_path, keep_label, plot=False):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
         if plot:
             plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d")
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
-        helper.mesh.mesh_remover.remove_object_part_v2(points, pred_label, mesh_file_path, trim_out_path, keep_label_id)
+        helper.mesh.mesh_remover.remove_object_part_v2(points, pred_label, mesh_file_path, trim_out_path, keep_label)
         
         if plot:
-            keep_indecies = pred_label == keep_label_id # keep
-            remove_indecies = pred_label != keep_label_id # remove
+            keep_indecies = pred_label == keep_label # keep
+            remove_indecies = pred_label != keep_label # remove
             plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool="open3d")
             plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool="open3d")
 
@@ -402,8 +402,8 @@ class Main:
             elif choice == "3":
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
-                keep_label_id = int(input("Keep Label ID: "))
-                self.cleaning_object(input_dir_path, output_dir_path, keep_label_id, plot=True)
+                keep_label = int(input("Keep Label ID: "))
+                self.cleaning_object(input_dir_path, output_dir_path, keep_label, plot=True)
             elif choice == "4":
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
