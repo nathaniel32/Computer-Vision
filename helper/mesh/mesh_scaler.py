@@ -288,6 +288,7 @@ if __name__ == "__main__":
         print(f"Label counts: {label_counts}")
         print(f"Points with label={target_label}: {len(points)}")
         return np.array(points)
+    
     def main():
         pcd_file = input("pcd path: ").strip().strip('"').strip("'")
         real_marker_diameter_cm = 3.85
@@ -316,3 +317,4 @@ if __name__ == "__main__":
                     print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
 
                     plot_marker_all_axes(points_marker, center, results)
+    main()
