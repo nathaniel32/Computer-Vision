@@ -7,6 +7,7 @@ class BaseConfig:
     name: str
     save_model_path: str
     save_log_path: str
+    total_num_points: int
     model_num_points: int
     epochs: int
     batch_size: int
