@@ -246,7 +246,7 @@ class Main:
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_point_cloud(point_plot, color_plot, model_classes, pred_label=pred_label, true_label=label)
+                plot_point_cloud(point_plot, color_plot, model_classes, pred_label=pred_label, true_label=label, plot_tool="open3d")
     
     def train(self, val_interval=1, warmup_epochs=5, resume=False):
         if not resume:
