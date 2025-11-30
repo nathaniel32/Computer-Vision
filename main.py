@@ -14,7 +14,7 @@ from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder
 import numpy as np
 import random
 from helper.train.augment import Augmenter
-from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes
+from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh
 
 random.seed(configs.SEED)
 np.random.seed(configs.SEED)
@@ -134,27 +134,17 @@ class Main:
         if plot:
             plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d")
 
+        all_markers_metrics = []
         for label in self.config.scale_labels:
             marker_indecies = pred_label == label
-            results, center = measure_marker_all_axes(points[marker_indecies])
-
-            scale_factor, avg_diameter = calculate_scale_factor(results, real_marker_diameter_cm)
-                    
-            print("\n=== Summary ===")
-            print(f"Marker measurements in model units:")
-            print(f"  Diameter 1 (PC1): {results['PC1']['length']:.4f}")
-            print(f"  Diameter 2 (PC2): {results['PC2']['length']:.4f}")
-            print(f"  Thickness (PC3):  {results['PC3']['length']:.4f}")
-            print(f"  Average diameter: {avg_diameter:.4f}")
-            print(f"\nScale factor (cm/unit): {scale_factor:.4f}")
-            print(f"\nScaled measurements in cm:")
-            print(f"  Diameter 1: {results['PC1']['length'] * scale_factor:.4f} cm")
-            print(f"  Diameter 2: {results['PC2']['length'] * scale_factor:.4f} cm")
-            print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
-
+            marker_axes_metrics, center = measure_marker_all_axes(points[marker_indecies])
+            all_markers_metrics.append(marker_axes_metrics)
             # Plot
             #plot_marker_all_axes(points, center, results)
-            plot_marker_all_axes(points[marker_indecies], center, results)
+            plot_marker_all_axes(points[marker_indecies], center, marker_axes_metrics)
+
+        scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
+        scale_mesh(scale_factor, mesh_file_path, output_dir_path)
     
     def _train(self, model, loader, criterion, optimizer, loop=2):
         model.train()
@@ -408,7 +398,6 @@ class Main:
                 keep_label_id = int(input("Keep Label ID: "))
                 self.cleaning_object(input_dir_path, output_dir_path, keep_label_id, plot=True)
             elif choice == "4":
-                print("scaling..")
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
                 real_marker_diameter_cm = float(input("Marker Diameter (cm): "))
