@@ -81,7 +81,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             ax.set_xlabel('X')
             ax.set_ylabel('Y')
             ax.set_zlabel('Z')
-            ax.legend()
+            ax.legend(loc='upper right') #ax.legend()
             subplot_idx += 1
         
         # Predicted Labels
@@ -103,7 +103,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             ax.set_xlabel('X')
             ax.set_ylabel('Y')
             ax.set_zlabel('Z')
-            ax.legend()
+            ax.legend(loc='upper right') # ax.legend()
         
         plt.tight_layout()
 
@@ -113,8 +113,9 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"Plot saved to {save_path}")
         
-        if PlotTool.MATPLOTLIB:
+        if plot_tool == PlotTool.MATPLOTLIB:
             plt.show()
+        plt.close()
 
     elif plot_tool == PlotTool.OPEN3D:
         def create_pointcloud_with_colors(point_cloud, label, classes):           
