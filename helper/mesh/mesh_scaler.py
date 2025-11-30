@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import trimesh
 import os
 
@@ -71,6 +70,7 @@ def measure_marker_all_axes(points):
 
 
 def plot_marker_all_axes(points, center, marker_axes_metrics):
+    import matplotlib.pyplot as plt
     """
     Plot 3D marker with all 3 principal PCA axes.
     """
