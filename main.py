@@ -140,15 +140,18 @@ class Main:
 
         all_markers_metrics = []
         for label in self.config.scale_labels:
-            marker_indecies = pred_label == label
-            marker_points = points[marker_indecies]
-            filtered_marker_points = filter_largest_cluster(marker_points)
-            marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
-            all_markers_metrics.append(marker_axes_metrics)
-            # Plot
-            #plot_marker_all_axes(points, center, results)
-            plot_marker_all_axes(marker_points, center, marker_axes_metrics)
-            plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics)
+            try:
+                marker_indecies = pred_label == label
+                marker_points = points[marker_indecies]
+                filtered_marker_points = filter_largest_cluster(marker_points)
+                marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
+                all_markers_metrics.append(marker_axes_metrics)
+                # Plot
+                #plot_marker_all_axes(points, center, results)
+                plot_marker_all_axes(marker_points, center, marker_axes_metrics)
+                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics)
+            except Exception as e:
+                print(e)
 
         scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
         scale_mesh(scale_factor, mesh_file_path, output_dir_path)
