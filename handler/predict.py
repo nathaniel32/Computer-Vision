@@ -61,11 +61,11 @@ class Predict:
 
             return comb_points, comb_color_norm, comb_pred_label, mesh_file_path
 
-    def cleaning_object(self, input_dir_path, output_dir_path, keep_label, plot=True, plot_dir=None):
+    def cleaning_object(self, input_dir_path, output_dir_path, keep_label, plot=True, plot_dir=None, headless=False):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
         if plot:
-            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
+            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless)
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
@@ -76,14 +76,14 @@ class Predict:
         remove_indecies = pred_label != keep_label # remove
         
         if plot:
-            plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="keep")
-            plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="remove")
+            plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="keep", headless=headless)
+            plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="remove", headless=headless)
 
-    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot=True, plot_dir=None):
+    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot=True, plot_dir=None, headless=False):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
         if plot:
-            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
+            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless)
 
         all_markers_metrics = []
         for label in self.config.scale_labels:
@@ -93,12 +93,12 @@ class Predict:
                 filtered_marker_points = filter_largest_cluster(marker_points)
                 marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
                 all_markers_metrics.append(marker_axes_metrics)
-                # Plot
-                #plot_marker_all_axes(points, center, results)
-
-                label_name = self.config.classes[label]['label']
-                plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"{label_name}_full", save_dir=plot_dir)
-                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_base_name=f"{label_name}_filtered", save_dir=plot_dir)
+                
+                if plot:
+                    #plot_marker_all_axes(points, center, results)
+                    label_name = self.config.classes[label]['label']
+                    plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"{label_name}_full", save_dir=plot_dir, headless=headless)
+                    plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_base_name=f"{label_name}_filtered", save_dir=plot_dir, headless=headless)
             except Exception as e:
                 print(e)
 

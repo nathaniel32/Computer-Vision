@@ -38,10 +38,9 @@ def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuraci
 class PlotTool(str, Enum):
     MATPLOTLIB = "matplotlib"
     OPEN3D = "open3d"
-    MATPLOTLIB_HEADLESS = "matplotlib_headless"
 
-def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool=PlotTool.MATPLOTLIB, save_dir=None, file_base_name="plot"):
-    if plot_tool in [PlotTool.MATPLOTLIB, PlotTool.MATPLOTLIB_HEADLESS]:
+def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool=PlotTool.MATPLOTLIB, save_dir=None, file_base_name="plot", headless=False):
+    if plot_tool == PlotTool.MATPLOTLIB or headless:
         # Determine the number of subplots
         num_subplots = 1
         if true_label is not None:
