@@ -112,7 +112,7 @@ class Main:
             comb_color = np.array(comb_color)
             comb_pred_label = np.array(comb_pred_label)
 
-            save_point_cloud_in_pcd(points, colors_int, output_dir_path, label=comb_pred_label)
+            save_point_cloud_in_pcd(comb_points, comb_color, output_dir_path, label=comb_pred_label)
 
             return comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path
 
