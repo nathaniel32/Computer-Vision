@@ -85,14 +85,15 @@ class Main:
             points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, total_num_points=total_num_points)
 
             comb_points = []
-            comb_color = []
+            comb_color_norm = []
             comb_pred_label = []
+            comb_color_int = []
 
             for i, chunk_indices in enumerate(chunks_indices, start=1):
                 print(f"- Chunk {i}/{len(chunks_indices)}")
                 points_chunk = points[chunk_indices]
-                colors_chunk = colors_int[chunk_indices]
-                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_chunk])
+                colors_int_chunk = colors_int[chunk_indices]
+                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_int_chunk])
                 
                 for (t_point, t_color) in pred_dataset:
                     t_point = t_point.unsqueeze(0).to(self.device)
@@ -105,16 +106,17 @@ class Main:
                     pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label)
 
                     comb_points.extend(points_chunk)
-                    comb_color.extend(color_plot)
+                    comb_color_norm.extend(color_plot)
                     comb_pred_label.extend(pred_label)
+                    comb_color_int.extend(colors_int_chunk)
                     
             comb_points = np.array(comb_points)
-            comb_color = np.array(comb_color)
+            comb_color_norm = np.array(comb_color_norm)
             comb_pred_label = np.array(comb_pred_label)
 
-            save_point_cloud_in_pcd(comb_points, comb_color, output_dir_path, label=comb_pred_label)
+            save_point_cloud_in_pcd(comb_points, comb_color_int, output_dir_path, label=comb_pred_label)
 
-            return comb_points, comb_color, comb_pred_label, model_classes, mesh_file_path
+            return comb_points, comb_color_norm, comb_pred_label, model_classes, mesh_file_path
 
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label_id, plot=False):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
