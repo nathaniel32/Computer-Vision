@@ -21,7 +21,7 @@ class Main:
         self.config = config
         self.logger = Logging(config=config)
 
-    def make_dataset(self, input_dir, out_dir, total_num_points=500000) -> None:
+    def make_dataset(self, input_dir, out_dir, total_num_points) -> None:
         os.makedirs(out_dir, exist_ok=True)
 
         processed_count = 0
@@ -91,7 +91,8 @@ class Main:
                 """)
                 input_dir = input('Input directory: ')
                 out_dir = input('Output directory: ')
-                self.make_dataset(input_dir, out_dir)
+                total_num_points = int(input('Total Points: '))
+                self.make_dataset(input_dir, out_dir, total_num_points)
 
 if __name__ == "__main__":
     for i, conf in enumerate(configs.CONFIG_LIST):
