@@ -71,7 +71,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
         return model, model_num_points, classes
     
-    def _predicting(self, input_dir_path, output_dir_path, total_num_points=500000):
+    def _predicting(self, input_dir_path, output_dir_path, total_num_points=500000, smoothing=False):
         os.makedirs(output_dir_path, exist_ok=True)
         
         model, model_num_points, model_classes = self._get_and_load_model()
@@ -103,7 +103,8 @@ class Main:
                     point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy()
                     color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
                     pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
-                    #pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label) #extra smoothing
+                    if smoothing:
+                        pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label) #extra smoothing
 
                     comb_points.extend(points_chunk)
                     comb_color_norm.extend(color_plot)
