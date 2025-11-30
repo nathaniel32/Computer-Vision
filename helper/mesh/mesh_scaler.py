@@ -1,6 +1,21 @@
 import numpy as np
 import trimesh
 import os
+import open3d as o3d
+
+def filter_largest_cluster(xyz, eps=0.02, min_points=10):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    
+    cluster_labels = np.array(pcd.cluster_dbscan(eps=eps, min_points=min_points))
+    
+    if (cluster_labels < 0).all():
+        return xyz
+    
+    largest_cluster_label = np.argmax(np.bincount(cluster_labels[cluster_labels >= 0]))
+    indices = np.where(cluster_labels == largest_cluster_label)[0]
+    
+    return xyz[indices]
 
 def scale_mesh(scale_factor, input_path, out_dir_path, filename="scaled.obj"):
     mesh = trimesh.load(input_path)

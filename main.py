@@ -14,7 +14,7 @@ from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_
 import numpy as np
 import random
 from helper.train.augment import Augmenter
-from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh
+from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh, filter_largest_cluster
 
 random.seed(configs.SEED)
 np.random.seed(configs.SEED)
@@ -71,7 +71,7 @@ class Main:
         print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
         return model, model_num_points, classes
     
-    def _predicting(self, input_dir_path, output_dir_path, total_num_points=200000):
+    def _predicting(self, input_dir_path, output_dir_path, total_num_points=500000):
         os.makedirs(output_dir_path, exist_ok=True)
         
         model, model_num_points, model_classes = self._get_and_load_model()
@@ -141,11 +141,14 @@ class Main:
         all_markers_metrics = []
         for label in self.config.scale_labels:
             marker_indecies = pred_label == label
-            marker_axes_metrics, center = measure_marker_all_axes(points[marker_indecies])
+            marker_points = points[marker_indecies]
+            filtered_marker_points = filter_largest_cluster(marker_points)
+            marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
             all_markers_metrics.append(marker_axes_metrics)
             # Plot
             #plot_marker_all_axes(points, center, results)
-            plot_marker_all_axes(points[marker_indecies], center, marker_axes_metrics)
+            plot_marker_all_axes(marker_points, center, marker_axes_metrics)
+            plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics)
 
         scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
         scale_mesh(scale_factor, mesh_file_path, output_dir_path)
