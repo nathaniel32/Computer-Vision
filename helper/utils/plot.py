@@ -40,7 +40,7 @@ class PlotTool(str, Enum):
     OPEN3D = "open3d"
     MATPLOTLIB_HEADLESS = "matplotlib_headless"
 
-def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool=PlotTool.MATPLOTLIB, save_dir=None, file_category="plot"):
+def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool=PlotTool.MATPLOTLIB, save_dir=None, file_base_name="plot"):
     if plot_tool in [PlotTool.MATPLOTLIB, PlotTool.MATPLOTLIB_HEADLESS]:
         # Determine the number of subplots
         num_subplots = 1
@@ -109,7 +109,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
 
         if save_dir is not None:
             os.makedirs(save_dir, exist_ok=True)
-            save_path = os.path.join(save_dir, f"{file_category}_plt.png")
+            save_path = os.path.join(save_dir, f"{file_base_name}_plt.png")
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"Plot saved to {save_path}")
         
@@ -154,7 +154,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             vis.capture_screen_image(save_path, do_render=True)
             print(f"Screenshot saved to {save_path}")
 
-        def run_multiple_visualizers(visualizers, save_dir=None, file_category="plot", window_names=None):
+        def run_multiple_visualizers(visualizers, save_dir=None, file_base_name="plot", window_names=None):
             # Initial update
             for vis in visualizers:
                 vis.poll_events()
@@ -165,7 +165,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
                 os.makedirs(save_dir, exist_ok=True)
                 for idx, vis in enumerate(visualizers):
                     window_suffix = window_names[idx] if window_names else f"view_{idx}"
-                    save_path = os.path.join(save_dir, f"{file_category}_o3d_{window_suffix}.png")
+                    save_path = os.path.join(save_dir, f"{file_base_name}_o3d_{window_suffix}.png")
                     capture_and_save(vis, save_path)
             
             # Main loop
@@ -209,7 +209,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             window_names.append("pred_labels")
         
         # Run all visualizers
-        run_multiple_visualizers(visualizers, save_dir=save_dir, file_category=file_category, window_names=window_names)
+        run_multiple_visualizers(visualizers, save_dir=save_dir, file_base_name=file_base_name, window_names=window_names)
 
     """ elif plot_tool == PlotTool.OPEN3D:
         def create_pointcloud_with_colors(point_cloud, label, classes):           

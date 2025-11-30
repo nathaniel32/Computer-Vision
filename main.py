@@ -40,7 +40,7 @@ class Main:
                 processed_count += 1
 
             except Exception as e:
-                print(f"✗ Failed to process {dir_path}: {e}")
+                print(f"- Failed to process {dir_path}: {e}")
 
         print(f"\n{'='*60}")
         print(f"- ALL DONE! Processed {processed_count} meshes")
