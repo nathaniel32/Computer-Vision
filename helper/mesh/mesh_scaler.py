@@ -291,7 +291,7 @@ if __name__ == "__main__":
     
     def main():
         pcd_file = input("pcd path: ").strip().strip('"').strip("'")
-        real_marker_diameter_cm = 3.85
+        real_marker_diameter_cm = float(input("real marker size: "))
 
         for i in range(1, 5):
             points_marker = read_pcd_label(pcd_file, target_label=i)
@@ -299,22 +299,23 @@ if __name__ == "__main__":
             if len(points_marker) == 0:
                 print(f"No marker points with label = {i}")
             else:
-                results, center = measure_marker_all_axes(points_marker)
+                markers_metrics, center = measure_marker_all_axes(points_marker)
 
-                if results:
-                    scale_factor, avg_diameter = calculate_scale_factor(results, real_marker_diameter_cm)
+                plot_marker_all_axes(points_marker, center, markers_metrics)
+
+                try:
+                    scale_factor = calculate_scale_factor([markers_metrics], real_marker_diameter_cm)
 
                     print("\n=== Summary ===")
                     print(f"Marker measurements in model units:")
-                    print(f"  Diameter 1 (PC1): {results['PC1']['length']:.4f}")
-                    print(f"  Diameter 2 (PC2): {results['PC2']['length']:.4f}")
-                    print(f"  Thickness (PC3):  {results['PC3']['length']:.4f}")
-                    print(f"  Average diameter: {avg_diameter:.4f}")
+                    print(f"  Diameter 1 (PC1): {markers_metrics['PC1']['length']:.4f}")
+                    print(f"  Diameter 2 (PC2): {markers_metrics['PC2']['length']:.4f}")
+                    print(f"  Thickness (PC3):  {markers_metrics['PC3']['length']:.4f}")
                     print(f"\nScale factor (cm/unit): {scale_factor:.4f}")
                     print(f"\nScaled measurements in cm:")
-                    print(f"  Diameter 1: {results['PC1']['length'] * scale_factor:.4f} cm")
-                    print(f"  Diameter 2: {results['PC2']['length'] * scale_factor:.4f} cm")
-                    print(f"  Thickness:  {results['PC3']['length'] * scale_factor:.4f} cm")
-
-                    plot_marker_all_axes(points_marker, center, results)
+                    print(f"  Diameter 1: {markers_metrics['PC1']['length'] * scale_factor:.4f} cm")
+                    print(f"  Diameter 2: {markers_metrics['PC2']['length'] * scale_factor:.4f} cm")
+                    print(f"  Thickness:  {markers_metrics['PC3']['length'] * scale_factor:.4f} cm")
+                except Exception as e:
+                    print(e)
     main()

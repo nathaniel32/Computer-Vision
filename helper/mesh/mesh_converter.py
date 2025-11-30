@@ -111,12 +111,25 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
 def save_point_cloud_in_pcd(points, colors_int, out_dir, label=None, filename="point_cloud.pcd"):
     pcd_out_path = os.path.join(out_dir, filename)
     print("Writing PCD file (ASCII format)...")
+    
+    # Determine fields based on whether labels are provided
+    if label is not None:
+        fields = 'FIELDS x y z rgb label\n'
+        size = 'SIZE 4 4 4 4 4\n'
+        type_spec = 'TYPE F F F U U\n'
+        count = 'COUNT 1 1 1 1 1\n'
+    else:
+        fields = 'FIELDS x y z rgb\n'
+        size = 'SIZE 4 4 4 4\n'
+        type_spec = 'TYPE F F F U\n'
+        count = 'COUNT 1 1 1 1\n'
+    
     with open(pcd_out_path, 'w') as f:
         f.write('VERSION .7\n')
-        f.write('FIELDS x y z rgb\n')
-        f.write('SIZE 4 4 4 4\n')
-        f.write('TYPE F F F U\n')
-        f.write('COUNT 1 1 1 1\n')
+        f.write(fields)
+        f.write(size)
+        f.write(type_spec)
+        f.write(count)
         f.write(f'WIDTH {len(points)}\n')
         f.write('HEIGHT 1\n')
         f.write('VIEWPOINT 0 0 0 1 0 0 0\n')
@@ -126,7 +139,11 @@ def save_point_cloud_in_pcd(points, colors_int, out_dir, label=None, filename="p
         for i in range(len(points)):
             x, y, z = points[i]
             rgb = colors_int[i]
-            f.write(f"{x} {y} {z} {rgb}\n")
+            if label is not None:
+                lbl = label[i] if hasattr(label, '__getitem__') else label
+                f.write(f"{x} {y} {z} {rgb} {lbl}\n")
+            else:
+                f.write(f"{x} {y} {z} {rgb}\n")
     
     print(f"\n- Point cloud saved: {pcd_out_path}")
 
