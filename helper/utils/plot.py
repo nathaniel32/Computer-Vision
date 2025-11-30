@@ -3,6 +3,7 @@ import pandas as pd
 import open3d as o3d
 import numpy as np
 import os
+from enum import Enum
 
 def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies, save_path=None, gui=True):
     plt.figure(figsize=(12, 5))
@@ -34,8 +35,12 @@ def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuraci
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Plot saved to {save_path}")
 
-def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool="matplotlib", save_dir=None, file_category="plot", gui=True):
-    if plot_tool == "matplotlib":
+class PlotTool(str, Enum):
+    MATPLOTLIB = "matplotlib"
+    OPEN3D = "open3d"
+
+def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool=PlotTool.MATPLOTLIB, save_dir=None, file_category="plot", gui=True):
+    if plot_tool == PlotTool.MATPLOTLIB:
         # Determine the number of subplots
         num_subplots = 1
         if true_label is not None:
@@ -109,7 +114,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
         if gui:
             plt.show()
 
-    elif plot_tool == "open3d":
+    elif plot_tool == PlotTool.OPEN3D:
         def hex_to_rgb(hex_color):
             hex_color = hex_color.lstrip('#')
             return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
@@ -248,7 +253,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             # Run all visualizers
             run_multiple_visualizers(visualizers)
     
-    """ elif plot_tool == "open3d":
+    """ elif plot_tool == PlotTool.OPEN3D:
         def create_pointcloud_with_colors(point_cloud, label, classes):           
             def hex_to_rgb(hex_color):
                 hex_color = hex_color.lstrip('#')

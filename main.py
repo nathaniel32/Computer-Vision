@@ -6,7 +6,7 @@ from helper.utils.log import Logging
 from helper.train.dataset import PointCloudSegmentationDataset, load_pcd_with_point_labels, get_chunks_indices
 from torch.utils.data import DataLoader
 from helper.train.model import PointNetSegmentation
-from helper.utils.plot import plot_training_stats, plot_point_cloud
+from helper.utils.plot import plot_training_stats, plot_point_cloud, PlotTool
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 import helper.mesh.mesh_remover
@@ -122,7 +122,7 @@ class Main:
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d", save_dir=output_dir_path)
+        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path)
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
@@ -131,13 +131,13 @@ class Main:
 
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
-        plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool="open3d", save_dir=output_dir_path, file_category="keep")
-        plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool="open3d", save_dir=output_dir_path, file_category="remove")
+        plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path, file_category="keep")
+        plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path, file_category="remove")
 
     def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d", save_dir=output_dir_path)
+        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path)
 
         all_markers_metrics = []
         for label in self.config.scale_labels:
@@ -246,7 +246,7 @@ class Main:
                 color_plot = color.squeeze(0).transpose(0, 1).cpu().numpy()
                 pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
                 
-                plot_point_cloud(point_plot, color_plot, model_classes, pred_label=pred_label, true_label=label, plot_tool="open3d")
+                plot_point_cloud(point_plot, color_plot, model_classes, pred_label=pred_label, true_label=label, plot_tool=PlotTool.OPEN3D)
     
     def train(self, val_interval=1, warmup_epochs=5, resume=False):
         if not resume:
