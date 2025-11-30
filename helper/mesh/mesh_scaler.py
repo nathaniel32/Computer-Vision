@@ -84,7 +84,7 @@ def measure_marker_all_axes(points):
     return marker_axes_metrics, center
 
 
-def plot_marker_all_axes(points, center, marker_axes_metrics):
+def plot_marker_all_axes(points, center, marker_axes_metrics, file_category="plot", save_dir=None, headless=False):
     import matplotlib.pyplot as plt
     """
     Plot 3D marker with all 3 principal PCA axes.
@@ -126,7 +126,17 @@ def plot_marker_all_axes(points, center, marker_axes_metrics):
     ax.set_zlim(mid_z - max_range, mid_z + max_range)
 
     plt.tight_layout()
-    plt.show()
+
+    if save_dir is not None:
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{file_category}_marker.png")
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {save_path}")
+
+    if not headless:
+        plt.show()
+
+    plt.close()
 
 def calculate_scale_factor(all_markers_metrics, real_diameter_cm, circularity_threshold=0.85, diameter_tolerance=0.15):
     """
@@ -316,7 +326,7 @@ if __name__ == "__main__":
             else:
                 markers_metrics, center = measure_marker_all_axes(points_marker)
 
-                plot_marker_all_axes(points_marker, center, markers_metrics)
+                plot_marker_all_axes(points_marker, center, markers_metrics, file_category=i)
 
                 try:
                     scale_factor = calculate_scale_factor([markers_metrics], real_marker_diameter_cm)
