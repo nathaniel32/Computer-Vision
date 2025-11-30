@@ -15,16 +15,16 @@ class Predict:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model, self.model_num_points, self.classes = get_predict_model(self.config.save_model_path, self.device)
 
-    def _predicting(self, input_dir_path, output_dir_path, total_num_points=500000, smoothing=False):
+    def _predicting(self, input_dir_path, output_dir_path, smoothing=False):
         os.makedirs(output_dir_path, exist_ok=True)
         
         self.model.eval()
         with torch.no_grad():
             # divide into chunks
-            chunks_indices = get_chunks_indices(total_num_points, self.model_num_points)
+            chunks_indices = get_chunks_indices(self.config.model_num_points, self.model_num_points)
 
             # obj to point cloud
-            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, total_num_points=total_num_points)
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, total_num_points=self.config.model_num_points)
 
             comb_points = []
             comb_color_norm = []
