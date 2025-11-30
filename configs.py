@@ -5,6 +5,8 @@ from typing import List
 @dataclass
 class BaseConfig:
     name: str
+    save_model_path: str
+    save_log_path: str
     model_num_points: int
     epochs: int
     batch_size: int
@@ -24,6 +26,8 @@ CONFIG_LIST:List[BaseConfig] = []
 
 hand_config = BaseConfig(
     name = "hand",
+    save_model_path = os.path.join(RES_ROOT_DIR, "hand", "best_model.pth"),
+    save_log_path = os.path.join(RES_ROOT_DIR, "hand", "log.txt"),
     model_num_points=10000,
     epochs=2000,
     batch_size=12,
@@ -40,6 +44,8 @@ hand_config = BaseConfig(
 
 marker_config = BaseConfig(
     name = "marker",
+    save_model_path = os.path.join(RES_ROOT_DIR, "marker", "best_model.pth"),
+    save_log_path = os.path.join(RES_ROOT_DIR, "marker", "log.txt"),
     model_num_points=100000,
     epochs=2000,
     batch_size=2,

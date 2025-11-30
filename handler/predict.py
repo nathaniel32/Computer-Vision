@@ -1,0 +1,107 @@
+import torch
+import os
+import configs
+from helper.train.dataset import PointCloudSegmentationDataset, get_chunks_indices
+from helper.train.model import get_predict_model
+from helper.utils.plot import plot_point_cloud, PlotTool
+import helper.mesh.mesh_remover
+from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
+import numpy as np
+from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh, filter_largest_cluster
+
+class Predict:
+    def __init__(self, config:configs.BaseConfig):
+        self.config = config
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model, self.model_num_points, self.classes = get_predict_model(self.config.save_model_path, self.device)
+
+    def _predicting(self, input_dir_path, output_dir_path, total_num_points=500000, smoothing=False):
+        os.makedirs(output_dir_path, exist_ok=True)
+        
+        self.model.eval()
+        with torch.no_grad():
+            # divide into chunks
+            chunks_indices = get_chunks_indices(total_num_points, self.model_num_points)
+
+            # obj to point cloud
+            points, colors_int, mesh_file_path = convert_mesh_to_point_cloud_folder(input_dir_path, total_num_points=total_num_points)
+
+            comb_points = []
+            comb_color_norm = []
+            comb_pred_label = []
+            comb_color_int = []
+
+            for i, chunk_indices in enumerate(chunks_indices, start=1):
+                print(f"- Chunk {i}/{len(chunks_indices)}")
+                points_chunk = points[chunk_indices]
+                colors_int_chunk = colors_int[chunk_indices]
+                pred_dataset = PointCloudSegmentationDataset([points_chunk], [colors_int_chunk])
+                
+                for (t_point, t_color) in pred_dataset:
+                    t_point = t_point.unsqueeze(0).to(self.device)
+                    t_color = t_color.unsqueeze(0).to(self.device)
+                    outputs = self.model(t_point, t_color)
+
+                    point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy()
+                    color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
+                    pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
+                    if smoothing:
+                        pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label) #extra smoothing
+
+                    comb_points.extend(points_chunk)
+                    comb_color_norm.extend(color_plot)
+                    comb_pred_label.extend(pred_label)
+                    comb_color_int.extend(colors_int_chunk)
+                    
+            comb_points = np.array(comb_points)
+            comb_color_norm = np.array(comb_color_norm)
+            comb_pred_label = np.array(comb_pred_label)
+
+            save_point_cloud_in_pcd(comb_points, comb_color_int, output_dir_path, label=comb_pred_label)
+
+            return comb_points, comb_color_norm, comb_pred_label, mesh_file_path
+
+    def cleaning_object(self, input_dir_path, output_dir_path, keep_label):
+        points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+
+        plot_dir = os.path.join(output_dir_path, "plot")
+
+        plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
+        
+        # trim mesh
+        trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
+        helper.mesh.mesh_remover.remove_object_part_v2(points, pred_label, mesh_file_path, trim_out_path, keep_label)
+        
+
+        keep_indecies = pred_label == keep_label # keep
+        remove_indecies = pred_label != keep_label # remove
+        
+        plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_category="keep")
+        plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_category="remove")
+
+    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm):
+        points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+
+        plot_dir = os.path.join(output_dir_path, "plot")
+
+        plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
+
+        all_markers_metrics = []
+        for label in self.config.scale_labels:
+            try:
+                marker_indecies = pred_label == label
+                marker_points = points[marker_indecies]
+                filtered_marker_points = filter_largest_cluster(marker_points)
+                marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
+                all_markers_metrics.append(marker_axes_metrics)
+                # Plot
+                #plot_marker_all_axes(points, center, results)
+
+                label_name = self.config.classes[label]['label']
+                plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_category=f"{label_name}_full", save_dir=plot_dir)
+                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_category=f"{label_name}_filtered", save_dir=plot_dir)
+            except Exception as e:
+                print(e)
+
+        scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
+        scale_mesh(scale_factor, mesh_file_path, output_dir_path)

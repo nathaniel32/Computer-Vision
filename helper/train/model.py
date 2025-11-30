@@ -163,3 +163,16 @@ class PointNetSegmentation(nn.Module):
         x = self.conv5(x)
         x = x.transpose(2, 1).contiguous()  # (B, num_classes, N) -> (B, N, num_classes)
         return x """
+
+def get_predict_model(model_path, device):
+    # load model
+    checkpoint = torch.load(model_path, weights_only=True, map_location=torch.device(device))
+    model_state_dict = checkpoint['model_state_dict']
+    classes = checkpoint['classes']
+    model_num_points = checkpoint['model_num_points']
+    val_acc = checkpoint['val_acc']
+    epoch = checkpoint['epoch']
+    model = PointNetSegmentation(num_classes=len(classes)).to(device)
+    model.load_state_dict(model_state_dict)
+    print(f"Checkpoint loaded: epoch={epoch}, val_acc={val_acc}, chunk_size={model_num_points}")
+    return model, model_num_points, classes
