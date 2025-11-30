@@ -61,12 +61,11 @@ class Predict:
 
             return comb_points, comb_color_norm, comb_pred_label, mesh_file_path
 
-    def cleaning_object(self, input_dir_path, output_dir_path, keep_label):
+    def cleaning_object(self, input_dir_path, output_dir_path, keep_label, plot_dir=None):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_dir = os.path.join(output_dir_path, "plot")
-
-        plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
+        if plot_dir is not None:
+            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
@@ -76,15 +75,15 @@ class Predict:
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
         
-        plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="keep")
-        plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="remove")
+        if plot_dir is not None:
+            plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="keep")
+            plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="remove")
 
-    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm):
+    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot_dir=None):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_dir = os.path.join(output_dir_path, "plot")
-
-        plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
+        if plot_dir is not None:
+            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
 
         all_markers_metrics = []
         for label in self.config.scale_labels:
