@@ -149,8 +149,10 @@ class Main:
                 all_markers_metrics.append(marker_axes_metrics)
                 # Plot
                 #plot_marker_all_axes(points, center, results)
-                plot_marker_all_axes(marker_points, center, marker_axes_metrics)
-                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics)
+
+                label_name = self.config.classes[label]['label']
+                plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_category=f"{label_name}_full", save_dir=output_dir_path, headless=True)
+                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_category=f"{label_name}_filtered", save_dir=output_dir_path, headless=True)
             except Exception as e:
                 print(e)
 
