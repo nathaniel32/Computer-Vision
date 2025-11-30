@@ -14,7 +14,7 @@ def smooth_labels(points, pred_label, k=50):
         
     return new_label
 
-def remove_object_part_v1(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label_id):
+def remove_object_part_v1(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label):
     # Load mesh
     mesh = trimesh.load(mesh_file_path, process=False)
     original_faces = len(mesh.faces)
@@ -22,7 +22,7 @@ def remove_object_part_v1(points, pred_label, mesh_file_path, save_obj_trim_path
     pred_label = smooth_labels(points=points, pred_label=pred_label)
 
     # Take points to be deleted
-    points_to_remove = points[pred_label != keep_label_id]
+    points_to_remove = points[pred_label != keep_label]
 
     if len(points_to_remove) > 0:
         # KDTree for vertex filter
@@ -53,7 +53,7 @@ def remove_object_part_v1(points, pred_label, mesh_file_path, save_obj_trim_path
     print(f"Mesh trimmed saved to: {save_obj_trim_path}")
     print(f"Original faces: {original_faces} -> Remaining faces: {len(mesh.faces)}")
 
-def remove_object_part_v2(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label_id, k_smooth=20, dilation_ratio=1.3):
+def remove_object_part_v2(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label, k_smooth=20, dilation_ratio=1.3):
     """ Cut objects with neat results and minimal noise """
     
     mesh = trimesh.load(mesh_file_path, process=False)
@@ -63,7 +63,7 @@ def remove_object_part_v2(points, pred_label, mesh_file_path, save_obj_trim_path
     pred_label = smooth_labels(points=points, pred_label=pred_label, k=k_smooth)
     
     print("Step 2: Calculating removal region...")
-    points_to_remove = points[pred_label != keep_label_id]
+    points_to_remove = points[pred_label != keep_label]
     
     if len(points_to_remove) < 10:
         print("Warning: Too few points to delete")
@@ -120,8 +120,8 @@ def remove_object_part_v2(points, pred_label, mesh_file_path, save_obj_trim_path
     
     return mesh
 
-def remove_object_part_v3(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label_id, k_smooth=20, padding=0.05):
-    """ Cut the object with a bounding box - only keep the region labeled keep_label_id """
+def remove_object_part_v3(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label, k_smooth=20, padding=0.05):
+    """ Cut the object with a bounding box - only keep the region labeled keep_label """
     
     mesh = trimesh.load(mesh_file_path, process=False)
     original_faces = len(mesh.faces)
@@ -130,7 +130,7 @@ def remove_object_part_v3(points, pred_label, mesh_file_path, save_obj_trim_path
     pred_label = smooth_labels(points=points, pred_label=pred_label, k=k_smooth)
     
     print("Step 2: Computing bounding box for keep region...")
-    points_to_keep = points[pred_label == keep_label_id]
+    points_to_keep = points[pred_label == keep_label]
     
     if len(points_to_keep) < 10:
         print("Warning: Too few points to keep")
