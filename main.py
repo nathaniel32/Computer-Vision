@@ -5,7 +5,7 @@ import configs
 from helper.utils.log import Logging
 from helper.train.dataset import PointCloudSegmentationDataset, load_pcd_with_point_labels, get_chunks_indices
 from torch.utils.data import DataLoader
-from model import PointNetSegmentation
+from helper.train.model import PointNetSegmentation
 from helper.utils.plot import plot_training_stats, plot_point_cloud
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
