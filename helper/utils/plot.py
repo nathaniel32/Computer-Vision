@@ -3,7 +3,7 @@ import pandas as pd
 import open3d as o3d
 import numpy as np
 
-def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies):
+def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuracies, save_path=None, gui=True):
     plt.figure(figsize=(12, 5))
 
     # Plot Loss
@@ -25,9 +25,15 @@ def plot_training_stats(train_losses, val_losses, train_accuracies, val_accuraci
     plt.legend()
 
     plt.tight_layout()
-    plt.show()
 
-def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool="matplotlib", save_path=None):
+    if gui:
+        plt.show()
+    
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {save_path}")
+
+def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool="matplotlib", save_path=None, gui=True):
     if plot_tool == "matplotlib":
         # Determine the number of subplots
         num_subplots = 1
@@ -97,7 +103,8 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
         if save_path is not None:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"Plot saved to {save_path}")
-        else:
+        
+        if gui:
             plt.show()
 
     elif plot_tool == "open3d":
@@ -114,7 +121,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
         pcd_original.colors = o3d.utility.Vector3dVector(color_plot)
         
         vis_original = o3d.visualization.Visualizer()
-        vis_original.create_window(window_name="Original Point Cloud (RGB)", width=600, height=600)
+        vis_original.create_window(window_name="Original Point Cloud (RGB)", width=600, height=600, visible=gui)
         vis_original.add_geometry(pcd_original)
         vis_original.get_render_option().point_size = 3
         vis_original.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
@@ -135,7 +142,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             pcd_true.colors = o3d.utility.Vector3dVector(true_colors)
             
             vis_true = o3d.visualization.Visualizer()
-            vis_true.create_window(window_name="True Labels", width=600, height=600)
+            vis_true.create_window(window_name="True Labels", width=600, height=600, visible=gui)
             vis_true.add_geometry(pcd_true)
             vis_true.get_render_option().point_size = 3
             vis_true.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
@@ -156,18 +163,18 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             pcd_pred.colors = o3d.utility.Vector3dVector(pred_colors)
             
             vis_pred = o3d.visualization.Visualizer()
-            vis_pred.create_window(window_name="Predicted Labels", width=600, height=600)
+            vis_pred.create_window(window_name="Predicted Labels", width=600, height=600, visible=gui)
             vis_pred.add_geometry(pcd_pred)
             vis_pred.get_render_option().point_size = 3
             vis_pred.get_render_option().background_color = np.array([0.5, 0.5, 0.5])
             visualizers.append(vis_pred)
         
-        # Update semua visualizer
+        # Update all visualizer
         for vis in visualizers:
             vis.poll_events()
             vis.update_renderer()
         
-        # Save screenshots jika save_path disediakan
+        # Save screenshots
         if save_path is not None:
             from pathlib import Path
             save_dir = Path(save_path).parent
@@ -184,13 +191,11 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
                 output_path = save_dir / f"{save_name}_{name}{save_ext}"
                 vis.capture_screen_image(str(output_path), do_render=True)
             
-            print(f"Screenshots saved to {save_dir / save_name}_*.{save_ext}")
-            
-            # Langsung destroy window setelah save
-            for vis in visualizers:
-                vis.destroy_window()
-        else:
-            # Tampilkan semua windows
+            print(f"Screenshots saved to {save_dir}/{save_name}_*{save_ext}")
+        
+        # Handle GUI display or destroy window
+        if gui and save_path is None:
+            # show windows
             while True:
                 all_active = True
                 for vis in visualizers:
@@ -200,6 +205,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
                 
                 if not all_active:
                     break
-            
-            for vis in visualizers:
-                vis.destroy_window()
+        
+        # Destroy all windows
+        for vis in visualizers:
+            vis.destroy_window()
