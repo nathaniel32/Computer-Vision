@@ -122,7 +122,7 @@ class Main:
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d", save_path=os.path.join(output_dir_path, "pred.png"))
+        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d", save_dir=output_dir_path)
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
@@ -131,13 +131,13 @@ class Main:
 
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
-        plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool="open3d", save_path=os.path.join(output_dir_path, "keep.png"))
-        plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool="open3d", save_path=os.path.join(output_dir_path, "remove.png"))
+        plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool="open3d", save_dir=output_dir_path, file_category="keep")
+        plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool="open3d", save_dir=output_dir_path, file_category="remove")
 
     def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d", save_path=os.path.join(output_dir_path, "pred.png"))
+        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool="open3d", save_dir=output_dir_path)
 
         all_markers_metrics = []
         for label in self.config.scale_labels:
