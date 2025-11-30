@@ -116,6 +116,100 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
         if PlotTool.MATPLOTLIB:
             plt.show()
 
+    elif plot_tool == PlotTool.OPEN3D:
+        def create_pointcloud_with_colors(point_cloud, label, classes):           
+            def hex_to_rgb(hex_color):
+                hex_color = hex_color.lstrip('#')
+                return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(point_cloud)
+            
+            colors = np.zeros_like(point_cloud, dtype=np.float64)
+            for idx, _class in enumerate(classes):
+                mask = (label == idx)
+                if mask.any():
+                    color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
+                    colors[mask] = color
+            
+            pcd.colors = o3d.utility.Vector3dVector(colors)
+            return pcd
+
+        def create_visualizer(window_name, geometry, point_size=3, background_color=None):
+            if background_color is None:
+                background_color = np.array([0.5, 0.5, 0.5])
+            
+            vis = o3d.visualization.Visualizer()
+            vis.create_window(window_name=window_name, width=600, height=600)
+            vis.add_geometry(geometry)
+            vis.get_render_option().point_size = point_size
+            vis.get_render_option().background_color = background_color
+            return vis
+
+        def capture_and_save(vis, save_path):
+            """Capture screen from visualizer and save to file"""
+            vis.poll_events()
+            vis.update_renderer()
+            vis.capture_screen_image(save_path, do_render=True)
+            print(f"Screenshot saved to {save_path}")
+
+        def run_multiple_visualizers(visualizers, save_dir=None, file_category="plot", window_names=None):
+            # Initial update
+            for vis in visualizers:
+                vis.poll_events()
+                vis.update_renderer()
+            
+            # Save screenshots if save_dir is provided
+            if save_dir is not None:
+                os.makedirs(save_dir, exist_ok=True)
+                for idx, vis in enumerate(visualizers):
+                    window_suffix = window_names[idx] if window_names else f"view_{idx}"
+                    save_path = os.path.join(save_dir, f"{file_category}_o3d_{window_suffix}.png")
+                    capture_and_save(vis, save_path)
+            
+            # Main loop
+            while True:
+                all_active = True
+                for vis in visualizers:
+                    if not vis.poll_events():
+                        all_active = False
+                    vis.update_renderer()
+                
+                if not all_active:
+                    break
+            
+            # Cleanup
+            for vis in visualizers:
+                vis.destroy_window()
+
+        visualizers = []
+        window_names = []
+        
+        # Original Point Cloud with RGB colors
+        pcd_original = o3d.geometry.PointCloud()
+        pcd_original.points = o3d.utility.Vector3dVector(point_cloud)
+        pcd_original.colors = o3d.utility.Vector3dVector(color_plot)
+        vis_original = create_visualizer("Original Point Cloud (RGB)", pcd_original)
+        visualizers.append(vis_original)
+        window_names.append("original")
+        
+        # True Labels
+        if true_label is not None:
+            pcd_true = create_pointcloud_with_colors(point_cloud, true_label, classes)
+            vis_true = create_visualizer("True Labels", pcd_true)
+            visualizers.append(vis_true)
+            window_names.append("true_labels")
+        
+        # Predicted Labels
+        if pred_label is not None:
+            pcd_pred = create_pointcloud_with_colors(point_cloud, pred_label, classes)
+            vis_pred = create_visualizer("Predicted Labels", pcd_pred)
+            visualizers.append(vis_pred)
+            window_names.append("pred_labels")
+        
+        # Run all visualizers
+        run_multiple_visualizers(visualizers, save_dir=save_dir, file_category=file_category, window_names=window_names)
+
     """ elif plot_tool == PlotTool.OPEN3D:
         def create_pointcloud_with_colors(point_cloud, label, classes):           
             def hex_to_rgb(hex_color):
