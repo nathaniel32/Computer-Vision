@@ -17,10 +17,10 @@ def filter_largest_cluster(xyz, eps=0.02, min_points=10):
     
     return xyz[indices]
 
-def scale_mesh(scale_factor, input_path, out_dir_path, filename="scaled.obj"):
+def scale_mesh(scale_factor, input_path, out_dir_path):
     mesh = trimesh.load(input_path)
     mesh.apply_scale(scale_factor)
-    mesh.export(os.path.join(out_dir_path, filename))
+    mesh.export(os.path.join(out_dir_path, f"scaled_{scale_factor}.obj"))
 
 def measure_marker_all_axes(points):
     """
