@@ -103,7 +103,7 @@ class Main:
                     point_plot = t_point.squeeze(0).transpose(0, 1).cpu().numpy()
                     color_plot = t_color.squeeze(0).transpose(0, 1).cpu().numpy()
                     pred_label = outputs.squeeze(0).argmax(dim=1).cpu().numpy()
-                    pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label)
+                    #pred_label = helper.mesh.mesh_remover.smooth_labels(points=point_plot, pred_label=pred_label) #extra smoothing
 
                     comb_points.extend(points_chunk)
                     comb_color_norm.extend(color_plot)
