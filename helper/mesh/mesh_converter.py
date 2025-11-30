@@ -107,7 +107,30 @@ def load_mesh_map(dir_path: str) -> Tuple[str, List[str]]:
     raise FileNotFoundError("No .obj file found in the folder.")
 
 # ============= MESH TO POINT CLOUD =============
-def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, total_num_points: int):
+
+def save_point_cloud_in_pcd(points, colors_int, out_dir, label=None, filename="point_cloud.pcd"):
+    pcd_out_path = os.path.join(out_dir, filename)
+    print("Writing PCD file (ASCII format)...")
+    with open(pcd_out_path, 'w') as f:
+        f.write('VERSION .7\n')
+        f.write('FIELDS x y z rgb\n')
+        f.write('SIZE 4 4 4 4\n')
+        f.write('TYPE F F F U\n')
+        f.write('COUNT 1 1 1 1\n')
+        f.write(f'WIDTH {len(points)}\n')
+        f.write('HEIGHT 1\n')
+        f.write('VIEWPOINT 0 0 0 1 0 0 0\n')
+        f.write(f'POINTS {len(points)}\n')
+        f.write('DATA ascii\n')
+        
+        for i in range(len(points)):
+            x, y, z = points[i]
+            rgb = colors_int[i]
+            f.write(f"{x} {y} {z} {rgb}\n")
+    
+    print(f"\n- Point cloud saved: {pcd_out_path}")
+
+def convert_mesh_to_point_cloud(obj_path: str, total_num_points: int):
     print("Loading mesh...")
     # Load as scene to get all materials and textures
     scene = trimesh.load(obj_path, force='scene', process=False)
@@ -179,40 +202,17 @@ def convert_mesh_to_point_cloud(obj_path: str, pcd_out_path: str, total_num_poin
     
     # Convert to packed RGB integers
     colors_int = _rgb_to_int_batch(colors_rgb)
-    
-    print("Writing PCD file (ASCII format)...")
-    with open(pcd_out_path, 'w') as f:
-        f.write('VERSION .7\n')
-        f.write('FIELDS x y z rgb\n')
-        f.write('SIZE 4 4 4 4\n')
-        f.write('TYPE F F F U\n')
-        f.write('COUNT 1 1 1 1\n')
-        f.write(f'WIDTH {len(points)}\n')
-        f.write('HEIGHT 1\n')
-        f.write('VIEWPOINT 0 0 0 1 0 0 0\n')
-        f.write(f'POINTS {len(points)}\n')
-        f.write('DATA ascii\n')
-        
-        for i in range(len(points)):
-            x, y, z = points[i]
-            rgb = colors_int[i]
-            f.write(f"{x} {y} {z} {rgb}\n")
-    
-    print(f"\n- Point cloud saved: {pcd_out_path}")
+
     print(f"- Points: {len(points)}")
     
     return points, colors_int, colors_rgb
 
-def convert_mesh_to_point_cloud_folder(dir_path, pcd_out_path, total_num_points, visualize=False):
+def convert_mesh_to_point_cloud_folder(dir_path, total_num_points, visualize=False):
     obj_path, textures_path = load_mesh_map(dir_path)
 
     try:
         print("\nCreating point cloud...")
-        points, colors_int, colors_rgb = convert_mesh_to_point_cloud(
-            obj_path,
-            pcd_out_path,
-            total_num_points=total_num_points
-        )
+        points, colors_int, colors_rgb = convert_mesh_to_point_cloud(obj_path, total_num_points=total_num_points)
 
         if visualize:
             _visualize_point_cloud(points, colors_rgb)

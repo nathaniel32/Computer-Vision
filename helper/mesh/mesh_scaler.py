@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import trimesh
 import os
 
-def scale_mesh(scale_factor, input_path, out_dir_path):
+def scale_mesh(scale_factor, input_path, out_dir_path, filename="scaled.obj"):
     mesh = trimesh.load(input_path)
     mesh.apply_scale(scale_factor)
-    mesh.export(os.path.join(out_dir_path, "scaled.obj"))
+    mesh.export(os.path.join(out_dir_path, filename))
 
 def measure_marker_all_axes(points):
     """
