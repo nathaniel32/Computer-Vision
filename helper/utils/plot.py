@@ -108,14 +108,13 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             plt.show()
 
     elif plot_tool == "open3d":
+        def hex_to_rgb(hex_color):
+            """Convert hex color string to RGB normalized (0-1)"""
+            hex_color = hex_color.lstrip('#')
+            return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+
         def create_pointcloud_with_colors(point_cloud, label, classes):
             """Create Open3D point cloud with colors based on label and class definitions"""
-            
-            def hex_to_rgb(hex_color):
-                """Convert hex color string to RGB normalized (0-1)"""
-                hex_color = hex_color.lstrip('#')
-                return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
-
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(point_cloud)
             
@@ -141,8 +140,111 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             vis.get_render_option().background_color = background_color
             return vis
 
-        def run_multiple_visualizers(visualizers):
+        def run_multiple_visualizers(visualizers, save_paths=None, gui=True):
             """Run multiple visualizers simultaneously until all are closed"""
+            # Initial update and optional screenshot capture
+            for i, vis in enumerate(visualizers):
+                vis.poll_events()
+                vis.update_renderer()
+                
+                # Save screenshot if save_path is provided
+                if save_paths and i < len(save_paths) and save_paths[i] is not None:
+                    vis.capture_screen_image(save_paths[i])
+                    print(f"Screenshot saved to {save_paths[i]}")
+            
+            # Only run interactive loop if gui is True
+            if gui:
+                # Main loop
+                while True:
+                    all_active = True
+                    for vis in visualizers:
+                        if not vis.poll_events():
+                            all_active = False
+                        vis.update_renderer()
+                    
+                    if not all_active:
+                        break
+            
+            # Cleanup
+            for vis in visualizers:
+                vis.destroy_window()
+
+        visualizers = []
+        save_paths = []
+        
+        # Original Point Cloud with RGB colors
+        pcd_original = o3d.geometry.PointCloud()
+        pcd_original.points = o3d.utility.Vector3dVector(point_cloud)
+        pcd_original.colors = o3d.utility.Vector3dVector(color_plot)
+        vis_original = create_visualizer("Original Point Cloud (RGB)", pcd_original)
+        visualizers.append(vis_original)
+        
+        # Handle save_path for multiple windows
+        if save_path is not None:
+            if "{}" in save_path:
+                save_paths.append(save_path.format("original"))
+            else:
+                # Single file path - save only the first window
+                save_paths.append(save_path)
+        else:
+            save_paths.append(None)
+        
+        # True Labels
+        if true_label is not None:
+            pcd_true = create_pointcloud_with_colors(point_cloud, true_label, classes)
+            vis_true = create_visualizer("True Labels", pcd_true)
+            visualizers.append(vis_true)
+            
+            if save_path is not None and "{}" in save_path:
+                save_paths.append(save_path.format("true"))
+            else:
+                save_paths.append(None)
+        
+        # Predicted Labels
+        if pred_label is not None:
+            pcd_pred = create_pointcloud_with_colors(point_cloud, pred_label, classes)
+            vis_pred = create_visualizer("Predicted Labels", pcd_pred)
+            visualizers.append(vis_pred)
+            
+            if save_path is not None and "{}" in save_path:
+                save_paths.append(save_path.format("pred"))
+            else:
+                save_paths.append(None)
+        
+        # Run all visualizers
+        run_multiple_visualizers(visualizers, save_paths, gui)
+
+    """ elif plot_tool == "open3d":
+        def create_pointcloud_with_colors(point_cloud, label, classes):           
+            def hex_to_rgb(hex_color):
+                hex_color = hex_color.lstrip('#')
+                return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(point_cloud)
+            
+            colors = np.zeros_like(point_cloud, dtype=np.float64)
+            for idx, _class in enumerate(classes):
+                mask = (label == idx)
+                if mask.any():
+                    color = hex_to_rgb(_class['color']) if isinstance(_class['color'], str) else _class['color']
+                    colors[mask] = color
+            
+            pcd.colors = o3d.utility.Vector3dVector(colors)
+            return pcd
+
+        def create_visualizer(window_name, geometry, point_size=3, background_color=None):
+            if background_color is None:
+                background_color = np.array([0.5, 0.5, 0.5])
+            
+            vis = o3d.visualization.Visualizer()
+            vis.create_window(window_name=window_name, width=600, height=600)
+            vis.add_geometry(geometry)
+            vis.get_render_option().point_size = point_size
+            vis.get_render_option().background_color = background_color
+            return vis
+
+        def run_multiple_visualizers(visualizers):
             # Initial update
             for vis in visualizers:
                 vis.poll_events()
@@ -186,4 +288,4 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             visualizers.append(vis_pred)
         
         # Run all visualizers
-        run_multiple_visualizers(visualizers)
+        run_multiple_visualizers(visualizers) """
