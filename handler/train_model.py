@@ -211,6 +211,7 @@ class TrainModel:
                 if val_acc > best_val_acc:
                     patience_counter = 0
                     best_val_acc = val_acc
+                    os.makedirs(os.path.dirname(self.config.save_model_path), exist_ok=True)
                     torch.save({
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),

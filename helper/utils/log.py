@@ -3,16 +3,16 @@ import configs
 
 class Logging:
     def __init__(self, config:configs.BaseConfig):
-        self.file_path = config.save_log_path
+        self.config = config
 
     def _write_to_file(self, message: str) -> None:
-        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
-        with open(self.file_path, "a", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(self.config.save_log_path), exist_ok=True)
+        with open(self.config.save_log_path, "a", encoding="utf-8") as f:
             f.write(message + "\n")
     
     def clear(self) -> None:
-        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
-        with open(self.file_path, "w") as f:
+        os.makedirs(os.path.dirname(self.config.save_log_path), exist_ok=True)
+        with open(self.config.save_log_path, "w") as f:
             f.write("")
 
     def print(self, *args: object) -> None:
