@@ -122,7 +122,9 @@ class Main:
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path)
+        plot_dir = os.path.join(output_dir_path, "plot")
+
+        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
@@ -131,13 +133,16 @@ class Main:
 
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
-        plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path, file_category="keep")
-        plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path, file_category="remove")
+        
+        plot_point_cloud(points[keep_indecies], color[keep_indecies], model_classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_category="keep")
+        plot_point_cloud(points[remove_indecies], color[remove_indecies], model_classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_category="remove")
 
     def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm):
         points, color, pred_label, model_classes, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=output_dir_path)
+        plot_dir = os.path.join(output_dir_path, "plot")
+
+        plot_point_cloud(points, color, model_classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir)
 
         all_markers_metrics = []
         for label in self.config.scale_labels:
@@ -151,8 +156,8 @@ class Main:
                 #plot_marker_all_axes(points, center, results)
 
                 label_name = self.config.classes[label]['label']
-                plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_category=f"{label_name}_full", save_dir=output_dir_path, headless=True)
-                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_category=f"{label_name}_filtered", save_dir=output_dir_path, headless=True)
+                plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_category=f"{label_name}_full", save_dir=plot_dir)
+                plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_category=f"{label_name}_filtered", save_dir=plot_dir)
             except Exception as e:
                 print(e)
 
