@@ -91,7 +91,7 @@ class Main:
                 """)
                 input_dir = input('Input directory: ')
                 out_dir = input('Output directory: ')
-                total_num_points = int(input('Total Points: '))
+                total_num_points = int(input(f'Total Points ({self.config.total_num_points}): '))
                 self.make_dataset(input_dir, out_dir, total_num_points)
 
 if __name__ == "__main__":
