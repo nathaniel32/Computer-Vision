@@ -40,7 +40,7 @@ class PlotTool(str, Enum):
     OPEN3D = "open3d"
 
 def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_label=None, plot_tool=PlotTool.MATPLOTLIB, save_dir=None, file_base_name="plot", headless=False):
-    if plot_tool == PlotTool.MATPLOTLIB or headless:
+    if plot_tool == PlotTool.MATPLOTLIB:
         # Determine the number of subplots
         num_subplots = 1
         if true_label is not None:
@@ -112,7 +112,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             print(f"Plot saved to {save_path}")
         
-        if plot_tool == PlotTool.MATPLOTLIB:
+        if not headless:
             plt.show()
         plt.close()
 
