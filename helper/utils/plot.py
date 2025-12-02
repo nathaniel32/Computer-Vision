@@ -140,7 +140,7 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
                 background_color = np.array([0.5, 0.5, 0.5])
             
             vis = o3d.visualization.Visualizer()
-            vis.create_window(window_name=window_name, width=600, height=600)
+            vis.create_window(window_name=window_name, width=600, height=600, visible=not headless)
             vis.add_geometry(geometry)
             vis.get_render_option().point_size = point_size
             vis.get_render_option().background_color = background_color
@@ -167,16 +167,17 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
                     save_path = os.path.join(save_dir, f"{file_base_name}_o3d_{window_suffix}.png")
                     capture_and_save(vis, save_path)
             
-            # Main loop
-            while True:
-                all_active = True
-                for vis in visualizers:
-                    if not vis.poll_events():
-                        all_active = False
-                    vis.update_renderer()
-                
-                if not all_active:
-                    break
+            if not headless:
+                # Main loop
+                while True:
+                    all_active = True
+                    for vis in visualizers:
+                        if not vis.poll_events():
+                            all_active = False
+                        vis.update_renderer()
+                    
+                    if not all_active:
+                        break
             
             # Cleanup
             for vis in visualizers:
