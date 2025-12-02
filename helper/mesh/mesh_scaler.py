@@ -17,6 +17,17 @@ def filter_largest_cluster(xyz, eps=0.02, min_points=10):
     
     return xyz[indices]
 
+def filter_clusters(xyz, eps=0.02, min_points=10):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    
+    cluster_labels = np.array(pcd.cluster_dbscan(eps=eps, min_points=min_points))
+
+    # Take all points that are not noise
+    indices = np.where(cluster_labels >= 0)[0]
+
+    return xyz[indices], cluster_labels[indices]
+
 def scale_mesh(scale_factor, input_path, out_dir_path):
     mesh = trimesh.load(input_path)
     mesh.apply_scale(scale_factor)
