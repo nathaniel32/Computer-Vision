@@ -100,7 +100,7 @@ class Predict:
                     #plot_marker_all_axes(points, center, results)
                     label_name = self.config.classes[label]['label']
                     plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_full", save_dir=plot_dir, headless=headless)
-                    #plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_filtered", save_dir=plot_dir, headless=headless)
+                    plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_filtered", save_dir=plot_dir, headless=headless)
             except Exception as e:
                 print(e)
 
