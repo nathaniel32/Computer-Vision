@@ -93,6 +93,7 @@ class Predict:
                 marker_indecies = pred_label == label
                 marker_points = points[marker_indecies]
                 filtered_marker_points = filter_largest_cluster(marker_points)
+                # TODO check all cluster where cluster = circle
                 marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
                 all_markers_metrics.append(marker_axes_metrics)
                 
