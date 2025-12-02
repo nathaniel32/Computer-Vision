@@ -15,7 +15,7 @@ class Predict:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model, self.model_num_points, self.classes = get_predict_model(self.config.save_model_path, self.device)
 
-    def _predicting(self, input_dir_path, output_dir_path, total_num_points=500000, smoothing=False):
+    def _predicting(self, input_dir_path, output_dir_path, smoothing=False):
         os.makedirs(output_dir_path, exist_ok=True)
 
         total_num_points = self.config.total_num_points
