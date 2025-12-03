@@ -313,32 +313,28 @@ if __name__ == "__main__":
         return np.array(points)
     
     def main():
+        from configs import marker_config
+
         pcd_file = input("pcd path: ").strip().strip('"').strip("'")
         real_marker_diameter_cm = float(input("real marker size: "))
 
-        for i in range(1, 5):
-            points_marker = read_pcd_label(pcd_file, target_label=i)
+        all_markers_metrics = []
+        for label in marker_config.scale_labels:
+            try:
+                points_marker = read_pcd_label(pcd_file, target_label=label)
+                marker_clusters = filter_clusters(points_marker)
 
-            if len(points_marker) == 0:
-                print(f"No marker points with label = {i}")
-            else:
-                markers_metrics, center = measure_marker_all_axes(points_marker)
+                for marker_cluster in marker_clusters:
+                    # TODO check cluster where cluster = circle
+                    marker_axes_metrics, center = measure_marker_all_axes(marker_cluster)
+                    all_markers_metrics.append(marker_axes_metrics)
+                    
+                    plot_marker_all_axes(points_marker, center, marker_axes_metrics)
+                    plot_marker_all_axes(marker_cluster, center, marker_axes_metrics)
+            except Exception as e:
+                print(e)
 
-                plot_marker_all_axes(points_marker, center, markers_metrics, file_base_name=i)
-
-                try:
-                    scale_factor = calculate_scale_factor([markers_metrics], real_marker_diameter_cm)
-
-                    print("\n=== Summary ===")
-                    print(f"Marker measurements in model units:")
-                    print(f"  Diameter 1 (PC1): {markers_metrics['PC1']['length']:.4f}")
-                    print(f"  Diameter 2 (PC2): {markers_metrics['PC2']['length']:.4f}")
-                    print(f"  Thickness (PC3):  {markers_metrics['PC3']['length']:.4f}")
-                    print(f"\nScale factor (cm/unit): {scale_factor:.4f}")
-                    print(f"\nScaled measurements in cm:")
-                    print(f"  Diameter 1: {markers_metrics['PC1']['length'] * scale_factor:.4f} cm")
-                    print(f"  Diameter 2: {markers_metrics['PC2']['length'] * scale_factor:.4f} cm")
-                    print(f"  Thickness:  {markers_metrics['PC3']['length'] * scale_factor:.4f} cm")
-                except Exception as e:
-                    print(e)
+        scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
+        print(f"Scale factor (cm/unit): {scale_factor:.4f}")
+    
     main() # py -m helper.mesh.mesh_scaler
