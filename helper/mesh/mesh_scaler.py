@@ -341,4 +341,4 @@ if __name__ == "__main__":
                     print(f"  Thickness:  {markers_metrics['PC3']['length'] * scale_factor:.4f} cm")
                 except Exception as e:
                     print(e)
-    main()
+    main() # py -m helper.mesh.mesh_scaler
