@@ -7,7 +7,7 @@ from helper.utils.plot import plot_point_cloud, PlotTool
 import helper.mesh.mesh_remover
 from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 import numpy as np
-from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh, filter_largest_cluster
+from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh, filter_largest_cluster, filter_clusters
 
 class Predict:
     def __init__(self, config:configs.BaseConfig):
@@ -118,16 +118,18 @@ class Predict:
             try:
                 marker_indecies = pred_label == label
                 marker_points = points[marker_indecies]
-                filtered_marker_points = filter_largest_cluster(marker_points)
-                # TODO check all cluster where cluster = circle
-                marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
-                all_markers_metrics.append(marker_axes_metrics)
-                
-                if plot:
-                    #plot_marker_all_axes(points, center, results)
-                    label_name = self.config.classes[label]['label']
-                    plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_full", save_dir=plot_dir, headless=headless)
-                    plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_filtered", save_dir=plot_dir, headless=headless)
+                marker_clusters = filter_clusters(marker_points)
+
+                for marker_cluster in marker_clusters:
+                    # TODO check cluster where cluster = circle
+                    marker_axes_metrics, center = measure_marker_all_axes(marker_cluster)
+                    all_markers_metrics.append(marker_axes_metrics)
+                    
+                    if plot:
+                        #plot_marker_all_axes(points, center, results)
+                        label_name = self.config.classes[label]['label']
+                        plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_full", save_dir=plot_dir, headless=headless)
+                        plot_marker_all_axes(marker_cluster, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_filtered", save_dir=plot_dir, headless=headless)
             except Exception as e:
                 print(e)
 

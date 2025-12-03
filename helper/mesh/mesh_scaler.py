@@ -3,11 +3,15 @@ import trimesh
 import os
 import open3d as o3d
 
-def filter_largest_cluster(xyz, eps=0.02, min_points=10):
+def get_cluster_labels(xyz, eps=0.02, min_points=10):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(xyz)
     
     cluster_labels = np.array(pcd.cluster_dbscan(eps=eps, min_points=min_points))
+    return cluster_labels
+
+def filter_largest_cluster(xyz):    
+    cluster_labels = get_cluster_labels(xyz)
     
     if (cluster_labels < 0).all():
         return xyz
@@ -17,16 +21,16 @@ def filter_largest_cluster(xyz, eps=0.02, min_points=10):
     
     return xyz[indices]
 
-def filter_clusters(xyz, eps=0.02, min_points=10):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz)
-    
-    cluster_labels = np.array(pcd.cluster_dbscan(eps=eps, min_points=min_points))
+def filter_clusters(xyz):
+    cluster_labels = get_cluster_labels(xyz)
 
-    # Take all points that are not noise
-    indices = np.where(cluster_labels >= 0)[0]
+    clusters = []
+    for label in np.unique(cluster_labels):
+        if label == -1:
+            continue  # skip noise
+        clusters.append(xyz[cluster_labels == label])
 
-    return xyz[indices], cluster_labels[indices]
+    return clusters
 
 def scale_mesh(scale_factor, input_path, out_dir_path):
     mesh = trimesh.load(input_path)
