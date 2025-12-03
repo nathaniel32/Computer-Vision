@@ -315,6 +315,15 @@ if __name__ == "__main__":
     def main():
         from configs import marker_config
 
+        # TODO
+        # per label
+        # - filter cluster circle
+        # - peer setiap cluster circle (tanpa peer dengan diri), ukuran circle harus mirip atau abaikan
+        # - hitung circle harus 1/4 dari panjang peer -> kasi nilai
+        # - rangking nilai
+        # per object
+        # - rangking label dengan nilai tertinggi
+
         pcd_file = input("pcd path: ").strip().strip('"').strip("'")
         real_marker_diameter_cm = float(input("real marker size: "))
 
@@ -325,7 +334,6 @@ if __name__ == "__main__":
                 marker_clusters = filter_clusters(points_marker)
 
                 for marker_cluster in marker_clusters:
-                    # TODO check cluster where cluster = circle
                     marker_axes_metrics, center = measure_marker_all_axes(marker_cluster)
                     all_markers_metrics.append(marker_axes_metrics)
                     
