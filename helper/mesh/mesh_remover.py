@@ -1,6 +1,18 @@
 from scipy.spatial import cKDTree
 import trimesh
 import numpy as np
+from helper.utils.mesh import get_cluster_labels
+
+def filter_largest_cluster(xyz):    
+    cluster_labels = get_cluster_labels(xyz)
+    
+    if (cluster_labels < 0).all():
+        return xyz
+    
+    largest_cluster_label = np.argmax(np.bincount(cluster_labels[cluster_labels >= 0]))
+    indices = np.where(cluster_labels == largest_cluster_label)[0]
+    
+    return xyz[indices]
 
 def smooth_labels(points, pred_label, k=50):
     tree = cKDTree(points)
