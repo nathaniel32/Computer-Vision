@@ -81,6 +81,32 @@ class Predict:
             plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_keep", headless=headless)
             plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_remove", headless=headless)
 
+    def scaling_object_v1(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot=True, plot_dir=None, headless=False):
+        points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
+
+        if plot:
+            plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless, file_base_name="scaling")
+
+        all_markers_metrics = []
+        for label in self.config.scale_labels:
+            try:
+                marker_indecies = pred_label == label
+                marker_points = points[marker_indecies]
+                filtered_marker_points = filter_largest_cluster(marker_points)
+                marker_axes_metrics, center = measure_marker_all_axes(filtered_marker_points)
+                all_markers_metrics.append(marker_axes_metrics)
+                
+                if plot:
+                    #plot_marker_all_axes(points, center, results)
+                    label_name = self.config.classes[label]['label']
+                    plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_full", save_dir=plot_dir, headless=headless)
+                    plot_marker_all_axes(filtered_marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_filtered", save_dir=plot_dir, headless=headless)
+            except Exception as e:
+                print(e)
+
+        scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
+        scale_mesh(scale_factor, mesh_file_path, output_dir_path)
+
     def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot=True, plot_dir=None, headless=False):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
