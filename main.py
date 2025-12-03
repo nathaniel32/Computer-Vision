@@ -69,13 +69,15 @@ class Main:
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
                 plot_dir_path = input("Plot Dir Path: ").strip('"').strip() or None
                 keep_label = int(input("Keep Label ID: "))
-                Predict(self.config).cleaning_object(input_dir_path, output_dir_path, keep_label, plot_dir=plot_dir_path, headless=True)
+                headless = input("Headless (y/n): ").lower().strip() == "y"
+                Predict(self.config).cleaning_object(input_dir_path, output_dir_path, keep_label, plot_dir=plot_dir_path, headless=headless)
             elif choice == "4":
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
                 plot_dir_path = input("Plot Dir Path: ").strip('"').strip() or None
                 real_marker_diameter_cm = float(input("Marker Diameter (cm): "))
-                Predict(self.config).scaling_object(input_dir_path, output_dir_path, real_marker_diameter_cm, plot_dir=plot_dir_path, headless=True)
+                headless = input("Headless (y/n): ").lower().strip() == "y"
+                Predict(self.config).scaling_object(input_dir_path, output_dir_path, real_marker_diameter_cm, plot_dir=plot_dir_path, headless=headless)
             elif choice == "5":
                 print("""Expected folder structure:
                 input_dir/
