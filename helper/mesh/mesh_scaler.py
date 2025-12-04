@@ -288,7 +288,7 @@ def main():
             
             print(f"== Total pairs: {len(marker_pairs)}") # n*(n-1)
         except Exception as e:
-            print(e)
+            print("Error: ", e)
 
     #scale_factor = ?
     #print(f"Scale factor (cm/unit): {scale_factor:.4f}")
