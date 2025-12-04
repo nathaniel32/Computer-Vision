@@ -1,7 +1,7 @@
 from scipy.spatial import cKDTree
 import trimesh
 import numpy as np
-from helper.utils.mesh import get_cluster_labels
+from helper.mesh.mesh_utils import get_cluster_labels
 
 def filter_largest_cluster(xyz):    
     cluster_labels = get_cluster_labels(xyz)

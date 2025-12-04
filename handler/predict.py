@@ -3,7 +3,7 @@ import os
 import configs
 from helper.train.dataset import PointCloudSegmentationDataset, get_chunks_indices
 from helper.train.model import get_predict_model
-from helper.utils.plot import plot_point_cloud, PlotTool
+from helper.plot import plot_point_cloud, PlotTool
 import helper.mesh.mesh_remover
 from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 import numpy as np

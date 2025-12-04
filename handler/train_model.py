@@ -2,11 +2,11 @@ import torch
 import torch.optim as optim
 import os
 import configs
-from helper.utils.log import Logging
+from helper.log import Logging
 from helper.train.dataset import PointCloudSegmentationDataset, load_pcd_with_point_labels
 from torch.utils.data import DataLoader
 from helper.train.model import PointNetSegmentation, get_predict_model
-from helper.utils.plot import plot_training_stats, plot_point_cloud, PlotTool
+from helper.plot import plot_training_stats, plot_point_cloud, PlotTool
 from helper.train.loss import FocalLoss, compute_alpha
 from helper.train.scheduler import WarmupScheduler
 from helper.train.augment import Augmenter

@@ -1,7 +1,7 @@
 import torch
 import os
 import configs
-from helper.utils.log import Logging
+from helper.log import Logging
 from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 import numpy as np
 import random
