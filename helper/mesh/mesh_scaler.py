@@ -134,6 +134,11 @@ class PointsMetrics:
 class MarkerPair:
     marker1: PointsMetrics
     marker2: PointsMetrics
+    merged_marker: PointsMetrics = field(init=False)
+
+    def __post_init__(self):
+        merged_points = self.get_merged_points()
+        self.merged_marker = PointsMetrics(merged_points)
 
     def get_diameter_similarity(self) -> float:
         """ 1.0 = identical, 0.0 = very different """
@@ -290,7 +295,7 @@ def main():
                 pair = MarkerPair(marker1, marker2)
                 pair_similarity = pair.get_diameter_similarity()
                 print(pair_similarity)
-                PointsMetrics(pair.get_merged_points()).plot_points_axes()
+                pair.merged_marker.plot_points_axes()
                 pair.plot_marker_pair()
                 if pair_similarity < pair_similarity_threshold:
                     print(f"- SKIPPED - Low Similarity")
