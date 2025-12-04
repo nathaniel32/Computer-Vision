@@ -324,8 +324,8 @@ if __name__ == "__main__":
         # per object
         # - rangking label dengan nilai tertinggi
 
-        pcd_file = input("pcd path: ").strip().strip('"').strip("'")
-        real_marker_diameter_cm = float(input("real marker size: "))
+        pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
+        real_marker_diameter_cm = 1 #float(input("real marker size: "))
 
         all_markers_metrics = []
         for label in marker_config.scale_labels:
