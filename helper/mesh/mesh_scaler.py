@@ -260,7 +260,7 @@ def main():
 
                 # plot
                 #marker_metrics.plot_points_axes(points_marker)
-                #marker_metrics.plot_points_axes(marker_cluster)
+                marker_metrics.plot_points_axes()
 
                 circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
 
@@ -270,7 +270,9 @@ def main():
                 if diameter_ratio > diameter_tolerance:
                     print(f"- SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
                     continue
-
+                
+                marker_metrics.plot_points_axes()
+                
                 markers.append(marker_metrics)
 
             marker_pairs = []
