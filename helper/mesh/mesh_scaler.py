@@ -20,7 +20,7 @@ def scale_mesh(scale_factor, input_path, out_dir_path):
     scale_factor_percent = int(scale_factor * 100)
     mesh.export(os.path.join(out_dir_path, f"scaled_{scale_factor_percent}_percent.obj"))
 
-def measure_marker_all_axes(points):
+def measure_points_axes(points):
     """
     Compute marker size along all 3 PCA principal axes.
     For a circular marker, PC1 and PC2 should be similar (diameter).
@@ -334,7 +334,7 @@ if __name__ == "__main__":
                 marker_clusters = filter_clusters(points_marker)
 
                 for marker_cluster in marker_clusters:
-                    marker_axes_metrics, center = measure_marker_all_axes(marker_cluster)
+                    marker_axes_metrics, center = measure_points_axes(marker_cluster)
                     all_markers_metrics.append(marker_axes_metrics)
                     
                     plot_marker_all_axes(points_marker, center, marker_axes_metrics)
