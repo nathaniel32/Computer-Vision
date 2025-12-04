@@ -72,7 +72,7 @@ def read_pcd_label(filename, target_label):
             # Parse FIELDS header
             if line.startswith("FIELDS"):
                 field_names = line.split()[1:]  # Skip "FIELDS" keyword
-                print(f"Detected fields: {field_names}")
+                #print(f"Detected fields: {field_names}")
 
                 # Find indices for x, y, z, label
                 for i, field in enumerate(field_names):
@@ -85,7 +85,7 @@ def read_pcd_label(filename, target_label):
                     elif field.lower() == 'label':
                         label_idx = i
 
-                print(f"Column indices - x:{x_idx}, y:{y_idx}, z:{z_idx}, label:{label_idx}")
+                #print(f"Column indices - x:{x_idx}, y:{y_idx}, z:{z_idx}, label:{label_idx}")
 
                 # Validation
                 if x_idx is None or y_idx is None or z_idx is None or label_idx is None:
@@ -114,7 +114,7 @@ def read_pcd_label(filename, target_label):
                 if label == target_label:
                     points.append([x, y, z])
 
-    print(f"\nTotal points in PCD: {total_points}")
-    print(f"Label counts: {label_counts}")
-    print(f"Points with label={target_label}: {len(points)}")
+    #print(f"\nTotal points in PCD: {total_points}")
+    #print(f"Label counts: {label_counts}")
+    #print(f"Points with label={target_label}: {len(points)}")
     return np.array(points)

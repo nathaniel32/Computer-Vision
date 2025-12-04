@@ -55,10 +55,14 @@ class PointsMetrics:
             p_max=center + max_proj * pc
         )
     
+    def get_avg_diameter(self) -> float:
+        """Get average diameter dari PC1 dan PC2."""
+        return (self.pc1.length + self.pc2.length) / 2.0
+
     def calculate_circularity(self):
         pc1_length = self.pc1.length
         pc2_length = self.pc2.length
-        avg_diameter = (pc1_length + pc2_length) / 2.0
+        avg_diameter = self.get_avg_diameter()
         diameter_diff = abs(pc1_length - pc2_length)
         diameter_ratio = diameter_diff / avg_diameter if avg_diameter > 0 else 1.0
         circularity = 1.0 - diameter_ratio
@@ -128,24 +132,39 @@ class MarkerPair:
     marker1: PointsMetrics
     marker2: PointsMetrics
 
+    def get_diameter_similarity(self) -> float:
+        """ 1.0 = identical, 0.0 = very different """
+        d1 = self.marker1.get_avg_diameter()
+        d2 = self.marker2.get_avg_diameter()
+        
+        if d1 == 0 or d2 == 0:
+            return 0.0
+        
+        # Smaller / larger diameter ratio
+        similarity = min(d1, d2) / max(d1, d2)
+        return similarity
+
 def main():
     from configs import marker_config
 
     # TODO
     # per label
-    # - filter cluster circle
-    # - peer setiap cluster circle (tanpa peer dengan diri), ukuran circle harus mirip atau abaikan
-    # - hitung circle harus 1/4 dari panjang peer -> kasi nilai
-    # - rangking nilai
+    # - filter cluster circle                                                                                   OK
+    # - peer setiap cluster circle (tanpa peer dengan diri), ukuran circle harus mirip atau abaikan             OK
+    # - hitung peer marker caranya marker1 kira kira 1/4 dari length marker pair -> kasi nilai quality
+    #   - NOTE: (Marker 1cm)  -- distance 2cm -- (Marker 1cm)   total 4cm
+    # - append rangking nilai quality tertinggi
+    
     # per object
     # - rangking label dengan nilai tertinggi
-    # (Marker 1cm)  -- distance 2cm -- (Marker 1cm)   total 4cm
+    # - hitung scale factor
 
     pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
     marker_diameter_cm = 1 #float(input("real marker size: "))
     pair_marker_length = 4
-    circularity_threshold=0.85
-    diameter_tolerance=0.15
+    circularity_threshold = 0.85
+    diameter_tolerance = 0.15
+    pair_similarity_threshold = 0.85
 
     for label in marker_config.scale_labels:
         try:
@@ -156,18 +175,17 @@ def main():
             for marker_cluster in marker_clusters:
                 marker_metrics = PointsMetrics(marker_cluster)
 
+                # plot
                 #marker_metrics.plot_points_axes(points_marker)
                 #marker_metrics.plot_points_axes(marker_cluster)
 
                 circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
 
-                print(circularity, avg_diameter, diameter_ratio, quality_score)
-
                 if circularity < circularity_threshold:
-                    print(f"  - SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
+                    print(f"- SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
                     continue
                 if diameter_ratio > diameter_tolerance:
-                    print(f"  - SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
+                    print(f"- SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
                     continue
 
                 markers.append(marker_metrics)
@@ -175,6 +193,13 @@ def main():
             marker_pairs = []
             for marker1, marker2 in permutations(markers, 2):
                 pair = MarkerPair(marker1, marker2)
+                pair_similarity = pair.get_diameter_similarity()
+                
+                print(pair_similarity)
+                if pair_similarity < pair_similarity_threshold:
+                    print(f"- SKIPPED - Low Similarity")
+                    continue
+
                 marker_pairs.append(pair)
             
             print(f"== Total pairs: {len(marker_pairs)}") # n*(n-1)
