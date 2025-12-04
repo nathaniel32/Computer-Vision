@@ -290,8 +290,8 @@ def main():
                 pair = MarkerPair(marker1, marker2)
                 pair_similarity = pair.get_diameter_similarity()
                 print(pair_similarity)
+                PointsMetrics(pair.get_merged_points()).plot_points_axes()
                 pair.plot_marker_pair()
-                #PointsMetrics(pair.get_merged_points()).plot_points_axes()
                 if pair_similarity < pair_similarity_threshold:
                     print(f"- SKIPPED - Low Similarity")
                     continue
