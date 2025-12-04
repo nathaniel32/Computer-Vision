@@ -132,7 +132,13 @@ class PointsMetrics:
             plt.show()
 
         plt.close()
-    
+
+@dataclass
+class MarkerPair:
+    marker1: PointsMetrics
+    marker2: PointsMetrics
+
+
 def filter_clusters(xyz):
     cluster_labels = get_cluster_labels(xyz)
 
