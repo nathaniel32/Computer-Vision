@@ -178,16 +178,26 @@ class MarkerPair:
         ax.plot(center_line[:,0], center_line[:,1], center_line[:,2], 
                 'k--', linewidth=2, alpha=0.6, 
                 label=f'Distance: {self._get_center_distance():.4f}')
-
-        # Plot PC1 axes for marker 1 (diameter)
+        
+        # Plot Marker 1
         line_m1_pc1 = np.vstack([self.marker1.pc1.p_min, self.marker1.pc1.p_max])
         ax.plot(line_m1_pc1[:,0], line_m1_pc1[:,1], line_m1_pc1[:,2], 
-                color='cyan', linewidth=2.5, label=f'M1 Diameter: {self.marker1.pc1.length:.4f}')
+                color='cyan', linewidth=2.5, label=f'M1 Diameter 1: {self.marker1.pc1.length:.4f}')
 
-        # Plot PC1 axes for marker 2 (diameter)
+        line_m1_pc2 = np.vstack([self.marker1.pc2.p_min, self.marker1.pc2.p_max])
+        ax.plot(line_m1_pc2[:,0], line_m1_pc2[:,1], line_m1_pc2[:,2], 
+                color='cyan', linewidth=2.5, linestyle='--', alpha=0.6, 
+                label=f'M1 Diameter 2: {self.marker1.pc2.length:.4f}')
+
+        # Plot Marker 2
         line_m2_pc1 = np.vstack([self.marker2.pc1.p_min, self.marker2.pc1.p_max])
         ax.plot(line_m2_pc1[:,0], line_m2_pc1[:,1], line_m2_pc1[:,2], 
-                color='orange', linewidth=2.5, label=f'M2 Diameter: {self.marker2.pc1.length:.4f}')
+                color='orange', linewidth=2.5, label=f'M2 Diameter 1: {self.marker2.pc1.length:.4f}')
+
+        line_m2_pc2 = np.vstack([self.marker2.pc2.p_min, self.marker2.pc2.p_max])
+        ax.plot(line_m2_pc2[:,0], line_m2_pc2[:,1], line_m2_pc2[:,2], 
+                color='orange', linewidth=2.5, linestyle='--', alpha=0.6,
+                label=f'M2 Diameter 2: {self.marker2.pc2.length:.4f}')
 
         # Add metrics to title
         similarity = self.get_diameter_similarity()
