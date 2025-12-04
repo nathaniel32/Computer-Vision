@@ -281,7 +281,7 @@ def main():
                     print(f"- SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
                     continue
                 
-                marker_metrics.plot_points_axes()
+                #marker_metrics.plot_points_axes()
 
                 markers.append(marker_metrics)
 
@@ -291,7 +291,7 @@ def main():
                 pair_similarity = pair.get_diameter_similarity()
                 print(pair_similarity)
                 pair.plot_marker_pair()
-                PointsMetrics(pair.get_merged_points()).plot_points_axes()
+                #PointsMetrics(pair.get_merged_points()).plot_points_axes()
                 if pair_similarity < pair_similarity_threshold:
                     print(f"- SKIPPED - Low Similarity")
                     continue
