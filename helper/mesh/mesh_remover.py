@@ -1,30 +1,7 @@
-from scipy.spatial import cKDTree
 import trimesh
 import numpy as np
-from helper.mesh.mesh_utils import get_cluster_labels
-
-def filter_largest_cluster(xyz):    
-    cluster_labels = get_cluster_labels(xyz)
-    
-    if (cluster_labels < 0).all():
-        return xyz
-    
-    largest_cluster_label = np.argmax(np.bincount(cluster_labels[cluster_labels >= 0]))
-    indices = np.where(cluster_labels == largest_cluster_label)[0]
-    
-    return xyz[indices]
-
-def smooth_labels(points, pred_label, k=50):
-    tree = cKDTree(points)
-    new_label = np.copy(pred_label)
-    
-    for i, p in enumerate(points):
-        dists, idx = tree.query(p, k=k)
-        neighbor_labels = pred_label[idx]
-        counts = np.bincount(neighbor_labels)
-        new_label[i] = np.argmax(counts)
-        
-    return new_label
+from helper.mesh.mesh_utils import smooth_labels
+from scipy.spatial import cKDTree
 
 def remove_object_part_v1(points, pred_label, mesh_file_path, save_obj_trim_path, keep_label):
     # Load mesh
