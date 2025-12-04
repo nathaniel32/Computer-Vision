@@ -69,15 +69,18 @@ class PointsMetrics:
         quality_score = circularity * (1.0 - diameter_ratio)
         return circularity, avg_diameter, diameter_ratio, quality_score
     
-    def plot_points_axes(self, all_points, file_base_name="plot", save_dir=None, headless=False):
+    def plot_points_axes(self, full_points=None, file_base_name="plot", save_dir=None, headless=False):
         import matplotlib.pyplot as plt
         import os
+
+        if full_points is None:
+            full_points = self.points
         
         fig = plt.figure(figsize=(12, 10))
         ax = fig.add_subplot(111, projection='3d')
 
         # Plot points dan center
-        ax.scatter(all_points[:,0], all_points[:,1], all_points[:,2], 
+        ax.scatter(full_points[:,0], full_points[:,1], full_points[:,2], 
                 s=1, color='green', alpha=0.3, label='Points')
         ax.scatter(self.center[0], self.center[1], self.center[2], 
                 color='red', s=100, marker='o', label='Centroid')
@@ -101,14 +104,14 @@ class PointsMetrics:
 
         # Set equal aspect ratio
         max_range = np.array([
-            all_points[:,0].max()-all_points[:,0].min(),
-            all_points[:,1].max()-all_points[:,1].min(),
-            all_points[:,2].max()-all_points[:,2].min()
+            full_points[:,0].max()-full_points[:,0].min(),
+            full_points[:,1].max()-full_points[:,1].min(),
+            full_points[:,2].max()-full_points[:,2].min()
         ]).max() / 2.0
 
-        mid_x = (all_points[:,0].max()+all_points[:,0].min()) * 0.5
-        mid_y = (all_points[:,1].max()+all_points[:,1].min()) * 0.5
-        mid_z = (all_points[:,2].max()+all_points[:,2].min()) * 0.5
+        mid_x = (full_points[:,0].max()+full_points[:,0].min()) * 0.5
+        mid_y = (full_points[:,1].max()+full_points[:,1].min()) * 0.5
+        mid_z = (full_points[:,2].max()+full_points[:,2].min()) * 0.5
 
         ax.set_xlim(mid_x - max_range, mid_x + max_range)
         ax.set_ylim(mid_y - max_range, mid_y + max_range)
@@ -143,6 +146,86 @@ class MarkerPair:
         # Smaller / larger diameter ratio
         similarity = min(d1, d2) / max(d1, d2)
         return similarity
+    
+    def get_merged_points(self) -> np.ndarray:
+        return np.vstack([self.marker1.points, self.marker2.points])
+    
+    def _get_center_distance(self) -> float:
+        return np.linalg.norm(self.marker2.center - self.marker1.center)
+
+    def plot_marker_pair(self, file_base_name="marker_pair", save_dir=None, headless=False):
+        """Plot both markers with their PCA axes and connection line."""
+        import matplotlib.pyplot as plt
+        import os
+        
+        fig = plt.figure(figsize=(14, 12))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Plot marker 1 points
+        ax.scatter(self.marker1.points[:,0], self.marker1.points[:,1], self.marker1.points[:,2], 
+                   s=2, color='blue', alpha=0.4, label='Marker 1 Points')
+        ax.scatter(self.marker1.center[0], self.marker1.center[1], self.marker1.center[2], 
+                   color='darkblue', s=150, marker='o', label='Marker 1 Center')
+
+        # Plot marker 2 points
+        ax.scatter(self.marker2.points[:,0], self.marker2.points[:,1], self.marker2.points[:,2], 
+                   s=2, color='red', alpha=0.4, label='Marker 2 Points')
+        ax.scatter(self.marker2.center[0], self.marker2.center[1], self.marker2.center[2], 
+                   color='darkred', s=150, marker='o', label='Marker 2 Center')
+
+        # Plot connection line between centers
+        center_line = np.vstack([self.marker1.center, self.marker2.center])
+        ax.plot(center_line[:,0], center_line[:,1], center_line[:,2], 
+                'k--', linewidth=2, alpha=0.6, 
+                label=f'Distance: {self._get_center_distance():.4f}')
+
+        # Plot PC1 axes for marker 1 (diameter)
+        line_m1_pc1 = np.vstack([self.marker1.pc1.p_min, self.marker1.pc1.p_max])
+        ax.plot(line_m1_pc1[:,0], line_m1_pc1[:,1], line_m1_pc1[:,2], 
+                color='cyan', linewidth=2.5, label=f'M1 Diameter: {self.marker1.pc1.length:.4f}')
+
+        # Plot PC1 axes for marker 2 (diameter)
+        line_m2_pc1 = np.vstack([self.marker2.pc1.p_min, self.marker2.pc1.p_max])
+        ax.plot(line_m2_pc1[:,0], line_m2_pc1[:,1], line_m2_pc1[:,2], 
+                color='orange', linewidth=2.5, label=f'M2 Diameter: {self.marker2.pc1.length:.4f}')
+
+        # Add metrics to title
+        similarity = self.get_diameter_similarity()
+        ax.set_title(f'Marker Pair - Diameter Similarity: {similarity:.3f}', fontsize=14)
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.legend(loc='upper right', fontsize=9)
+
+        # Set equal aspect ratio based on both markers
+        merged_points = self.get_merged_points()
+        max_range = np.array([
+            merged_points[:,0].max() - merged_points[:,0].min(),
+            merged_points[:,1].max() - merged_points[:,1].min(),
+            merged_points[:,2].max() - merged_points[:,2].min()
+        ]).max() / 2.0
+
+        mid_x = (merged_points[:,0].max() + merged_points[:,0].min()) * 0.5
+        mid_y = (merged_points[:,1].max() + merged_points[:,1].min()) * 0.5
+        mid_z = (merged_points[:,2].max() + merged_points[:,2].min()) * 0.5
+
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
+        plt.tight_layout()
+
+        if save_dir is not None:
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, f"{file_base_name}.png")
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Marker pair plot saved to {save_path}")
+
+        if not headless:
+            plt.show()
+
+        plt.close()
 
 def main():
     from configs import marker_config
@@ -194,8 +277,9 @@ def main():
             for marker1, marker2 in permutations(markers, 2):
                 pair = MarkerPair(marker1, marker2)
                 pair_similarity = pair.get_diameter_similarity()
-                
                 print(pair_similarity)
+                pair.plot_marker_pair()
+                PointsMetrics(pair.get_merged_points()).plot_points_axes()
                 if pair_similarity < pair_similarity_threshold:
                     print(f"- SKIPPED - Low Similarity")
                     continue
