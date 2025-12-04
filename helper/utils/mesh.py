@@ -1,6 +1,6 @@
 import open3d as o3d
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from typing import Tuple
 import trimesh
@@ -22,29 +22,116 @@ class AxisMetrics:
     p_min: np.ndarray
     p_max: np.ndarray
     
-    def get_endpoints(self) -> Tuple[np.ndarray, np.ndarray]:
-        return self.p_min, self.p_max
-
 @dataclass
 class PointsMetrics:
-    pc1: AxisMetrics  # Diameter 1
-    pc2: AxisMetrics  # Diameter 2
-    pc3: AxisMetrics  # Thickness
-    center: np.ndarray
-    singular_values: np.ndarray
-    explained_variance_ratio: np.ndarray
+    points: np.ndarray
+    center: np.ndarray = field(init=False)
+    singular_values: np.ndarray = field(init=False)
+    explained_variance_ratio: np.ndarray = field(init=False)
+    pc1: AxisMetrics = field(init=False)
+    pc2: AxisMetrics = field(init=False)
+    pc3: AxisMetrics = field(init=False)
+
+    def __post_init__(self):
+        if self.points.shape[0] < 3:
+            raise ValueError("Not enough points for PCA (minimum 3)")
+        
+        # compute PCA
+        self.center = self.points.mean(axis=0)
+        pts_centered = self.points - self.center
+
+        # SVD
+        U, S, Vt = np.linalg.svd(pts_centered, full_matrices=False)
+
+        self.singular_values = S
+        self.explained_variance_ratio = S**2 / np.sum(S**2)
+
+        self.pc1 = self._create_axis_metrics(pts_centered, Vt[0], self.center)
+        self.pc2 = self._create_axis_metrics(pts_centered, Vt[1], self.center)
+        self.pc3 = self._create_axis_metrics(pts_centered, Vt[2], self.center)
+
+    def _create_axis_metrics(self, pts_centered, pc, center):
+        projections = pts_centered @ pc
+        min_proj = projections.min()
+        max_proj = projections.max()
+        length = max_proj - min_proj
+        
+        return AxisMetrics(
+            length=float(length),
+            pc=pc,
+            min_proj=float(min_proj),
+            max_proj=float(max_proj),
+            p_min=center + min_proj * pc,
+            p_max=center + max_proj * pc
+        )
     
-    def get_circularity(self) -> float:
-        d1, d2 = self.pc1.length, self.pc2.length
-        return min(d1, d2) / max(d1, d2) if max(d1, d2) > 0 else 0.0
+    def calculate_circularity(self):
+        pc1_length = self.pc1.length
+        pc2_length = self.pc2.length
+        avg_diameter = (pc1_length + pc2_length) / 2.0
+        diameter_diff = abs(pc1_length - pc2_length)
+        diameter_ratio = diameter_diff / avg_diameter if avg_diameter > 0 else 1.0
+        circularity = 1.0 - diameter_ratio
+        quality_score = circularity * (1.0 - diameter_ratio)
+        return circularity, avg_diameter, diameter_ratio, quality_score
     
-    def is_valid_marker(self, circularity_threshold: float = 0.85, thickness_ratio_max: float = 0.3) -> bool:
-        circ = self.get_circularity()
-        thickness_ratio = self.pc3.length / self.pc1.length if self.pc1.length > 0 else float('inf')
-        return circ >= circularity_threshold and thickness_ratio <= thickness_ratio_max
-    
-    def get_diameter(self) -> float:
-        return (self.pc1.length + self.pc2.length) / 2.0
+    def plot_points_axes(self, all_points, file_base_name="plot", save_dir=None, headless=False):
+        import matplotlib.pyplot as plt
+        import os
+        
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Plot points dan center
+        ax.scatter(all_points[:,0], all_points[:,1], all_points[:,2], 
+                s=1, color='green', alpha=0.3, label='Points')
+        ax.scatter(self.center[0], self.center[1], self.center[2], 
+                color='red', s=100, marker='o', label='Centroid')
+
+        # Plot PC axes
+        colors = ['blue', 'orange', 'purple']
+        labels = ['PC1 (Diameter 1)', 'PC2 (Diameter 2)', 'PC3 (Thickness)']
+        axes = [self.pc1, self.pc2, self.pc3]
+
+        for axis_metrics, color, label in zip(axes, colors, labels):
+            line = np.vstack([axis_metrics.p_min, axis_metrics.p_max])
+            ax.plot(line[:,0], line[:,1], line[:,2], 
+                    color=color, linewidth=3, 
+                    label=f"{label}: {axis_metrics.length:.4f}")
+
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title('PCA - All Principal Axes')
+        ax.legend()
+
+        # Set equal aspect ratio
+        max_range = np.array([
+            all_points[:,0].max()-all_points[:,0].min(),
+            all_points[:,1].max()-all_points[:,1].min(),
+            all_points[:,2].max()-all_points[:,2].min()
+        ]).max() / 2.0
+
+        mid_x = (all_points[:,0].max()+all_points[:,0].min()) * 0.5
+        mid_y = (all_points[:,1].max()+all_points[:,1].min()) * 0.5
+        mid_z = (all_points[:,2].max()+all_points[:,2].min()) * 0.5
+
+        ax.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax.set_zlim(mid_z - max_range, mid_z + max_range)
+
+        plt.tight_layout()
+
+        if save_dir is not None:
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, f"{file_base_name}_axes.png")
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Plot saved to {save_path}")
+
+        if not headless:
+            plt.show()
+
+        plt.close()
     
 def filter_clusters(xyz):
     cluster_labels = get_cluster_labels(xyz)
@@ -62,60 +149,6 @@ def scale_mesh(scale_factor, input_path, out_dir_path):
     mesh.apply_scale(scale_factor)
     scale_factor_percent = int(scale_factor * 100)
     mesh.export(os.path.join(out_dir_path, f"scaled_{scale_factor_percent}_percent.obj"))
-
-def plot_marker_all_axes(points, center, marker_axes_metrics, file_base_name="plot", save_dir=None, headless=False):
-    import matplotlib.pyplot as plt
-    """
-    Plot 3D marker with all 3 principal PCA axes.
-    """
-    fig = plt.figure(figsize=(12, 10))
-    ax = fig.add_subplot(111, projection='3d')
-
-    ax.scatter(points[:,0], points[:,1], points[:,2], s=1, color='green', alpha=0.3, label='Marker points')
-
-    ax.scatter(center[0], center[1], center[2], color='red', s=100, marker='o', label='Centroid')
-
-    colors = ['blue', 'orange', 'purple']
-    labels = ['PC1 (Diameter 1)', 'PC2 (Diameter 2)', 'PC3 (Thickness)']
-
-    for name, color, label in zip(['PC1', 'PC2', 'PC3'], colors, labels):
-        res = marker_axes_metrics[name]
-        line = np.vstack([res['p_min'], res['p_max']])
-        ax.plot(line[:,0], line[:,1], line[:,2], color=color, linewidth=3, label=f"{label}: {res['length']:.4f}")
-
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    ax.set_title('Marker PCA - All Principal Axes')
-    ax.legend()
-
-    # Set equal aspect ratio
-    max_range = np.array([
-        points[:,0].max()-points[:,0].min(),
-        points[:,1].max()-points[:,1].min(),
-        points[:,2].max()-points[:,2].min()
-    ]).max() / 2.0
-
-    mid_x = (points[:,0].max()+points[:,0].min()) * 0.5
-    mid_y = (points[:,1].max()+points[:,1].min()) * 0.5
-    mid_z = (points[:,2].max()+points[:,2].min()) * 0.5
-
-    ax.set_xlim(mid_x - max_range, mid_x + max_range)
-    ax.set_ylim(mid_y - max_range, mid_y + max_range)
-    ax.set_zlim(mid_z - max_range, mid_z + max_range)
-
-    plt.tight_layout()
-
-    if save_dir is not None:
-        os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, f"{file_base_name}_marker.png")
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {save_path}")
-
-    if not headless:
-        plt.show()
-
-    plt.close()
 
 def read_pcd_label(filename, target_label):
     """

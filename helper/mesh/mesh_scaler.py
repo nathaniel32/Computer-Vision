@@ -1,66 +1,5 @@
 import numpy as np
-from helper.utils.mesh import get_cluster_labels, AxisMetrics, PointsMetrics, filter_clusters, plot_marker_all_axes, read_pcd_label
-
-def measure_points_axes(points):
-    """
-    Compute marker size along all 3 PCA principal axes.
-    For a circular marker, PC1 and PC2 should be similar (diameter).
-    """
-    if points.shape[0] < 3:
-        raise ValueError("Not enough points for PCA (minimum 3)")
-
-    print("\n=== PCA Analysis ===")
-    print("Sample first 5 points:\n", points[:5])
-    center = points.mean(axis=0)
-    print("Center of points:", center)
-
-    pts_centered = points - center
-    print("Sample first 5 centered points:\n", pts_centered[:5])
-
-    # SVD for PCA
-    U, S, Vt = np.linalg.svd(pts_centered, full_matrices=False)
-
-    # Principal components
-    pc1 = Vt[0]
-    pc2 = Vt[1]
-    pc3 = Vt[2]
-
-    print("\nPrincipal Components:")
-    print(f"PC1 (largest variance): {pc1}")
-    print(f"PC2 (second variance):  {pc2}")
-    print(f"PC3 (smallest variance): {pc3}")
-
-    # Singular values (square roots of eigenvalues)
-    print(f"\nSingular values: {S}")
-    print(f"Explained variance ratio: {S**2 / np.sum(S**2)}")
-
-    marker_axes_metrics = {}
-
-    for i, (pc, name) in enumerate([(pc1, 'PC1'), (pc2, 'PC2'), (pc3, 'PC3')]):
-        projections = pts_centered @ pc
-        min_proj = projections.min()
-        max_proj = projections.max()
-        length = max_proj - min_proj
-
-        p_min_3d = center + min_proj * pc
-        p_max_3d = center + max_proj * pc
-
-        marker_axes_metrics[name] = {
-            'length': float(length),
-            'pc': pc,
-            'min_proj': min_proj,
-            'max_proj': max_proj,
-            'p_min': p_min_3d,
-            'p_max': p_max_3d
-        }
-
-        print(f"\n{name} ({['Diameter 1', 'Diameter 2', 'Thickness'][i]}):")
-        print(f"  Projection range: [{min_proj:.4f}, {max_proj:.4f}]")
-        print(f"  Length: {length:.4f}")
-        print(f"  Min point: {p_min_3d}")
-        print(f"  Max point: {p_max_3d}")
-
-    return marker_axes_metrics, center
+from helper.utils.mesh import get_cluster_labels, AxisMetrics, PointsMetrics, filter_clusters, read_pcd_label
 
 def calculate_scale_factor(all_markers_metrics, real_diameter_cm, circularity_threshold=0.85, diameter_tolerance=0.15):
     """
@@ -169,14 +108,6 @@ def calculate_scale_factor(all_markers_metrics, real_diameter_cm, circularity_th
     
     return best_marker['scale_factor']
 
-def calculate_circularity(pc1_length, pc2_length):
-    avg_diameter = (pc1_length + pc2_length) / 2.0
-    diameter_diff = abs(pc1_length - pc2_length)
-    diameter_ratio = diameter_diff / avg_diameter if avg_diameter > 0 else 1.0
-    circularity = 1.0 - diameter_ratio
-    quality_score = circularity * (1.0 - diameter_ratio)
-    return circularity, avg_diameter, diameter_ratio, quality_score
-
 def main():
     from configs import marker_config
 
@@ -199,15 +130,16 @@ def main():
             marker_clusters = filter_clusters(points_marker)
 
             for marker_cluster in marker_clusters:
-                marker_axes_metrics, center = measure_points_axes(marker_cluster)
-                circularity, avg_diameter, diameter_ratio, quality_score = calculate_circularity(marker_axes_metrics['PC1']['length'], marker_axes_metrics['PC2']['length'])
+                marker_metrics = PointsMetrics(marker_cluster)
+
+                marker_metrics.plot_points_axes(points_marker)
+                marker_metrics.plot_points_axes(marker_cluster)
+
+                circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
 
                 print(circularity, avg_diameter, diameter_ratio, quality_score)
 
-                all_markers_metrics.append(marker_axes_metrics)
-                
-                plot_marker_all_axes(points_marker, center, marker_axes_metrics)
-                plot_marker_all_axes(marker_cluster, center, marker_axes_metrics)
+                all_markers_metrics.append(marker_metrics)
         except Exception as e:
             print(e)
 
