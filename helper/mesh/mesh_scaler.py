@@ -139,9 +139,11 @@ def main():
     # - rangking nilai
     # per object
     # - rangking label dengan nilai tertinggi
+    # (Marker 1cm)  -- distance 2cm -- (Marker 1cm)   total 4cm
 
     pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
-    real_marker_diameter_cm = 1 #float(input("real marker size: "))
+    marker_diameter_cm = 1 #float(input("real marker size: "))
+    pair_marker_length = 4
     circularity_threshold=0.85
     diameter_tolerance=0.15
 
