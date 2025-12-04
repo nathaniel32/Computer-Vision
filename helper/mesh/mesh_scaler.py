@@ -243,6 +243,14 @@ def calculate_scale_factor(all_markers_metrics, real_diameter_cm, circularity_th
     
     return best_marker['scale_factor']
 
+def calculate_circularity(pc1_length, pc2_length):
+    avg_diameter = (pc1_length + pc2_length) / 2.0
+    diameter_diff = abs(pc1_length - pc2_length)
+    diameter_ratio = diameter_diff / avg_diameter if avg_diameter > 0 else 1.0
+    circularity = 1.0 - diameter_ratio
+    quality_score = circularity * (1.0 - diameter_ratio)
+    return circularity, avg_diameter, diameter_ratio, quality_score
+
 if __name__ == "__main__":
     def read_pcd_label(filename, target_label):
         """
@@ -335,6 +343,10 @@ if __name__ == "__main__":
 
                 for marker_cluster in marker_clusters:
                     marker_axes_metrics, center = measure_points_axes(marker_cluster)
+                    circularity, avg_diameter, diameter_ratio, quality_score = calculate_circularity(marker_axes_metrics['PC1']['length'], marker_axes_metrics['PC2']['length'])
+
+                    print(circularity, avg_diameter, diameter_ratio, quality_score)
+
                     all_markers_metrics.append(marker_axes_metrics)
                     
                     plot_marker_all_axes(points_marker, center, marker_axes_metrics)
