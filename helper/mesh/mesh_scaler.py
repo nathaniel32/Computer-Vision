@@ -137,7 +137,7 @@ class MarkerPair:
     merged_marker: PointsMetrics = field(init=False)
 
     def __post_init__(self):
-        merged_points = self.get_merged_points()
+        merged_points = self._get_merged_points()
         self.merged_marker = PointsMetrics(merged_points)
 
     def get_diameter_similarity(self) -> float:
@@ -152,11 +152,29 @@ class MarkerPair:
         similarity = min(d1, d2) / max(d1, d2)
         return similarity
     
-    def get_merged_points(self) -> np.ndarray:
+    def _get_merged_points(self) -> np.ndarray:
         return np.vstack([self.marker1.points, self.marker2.points])
+    
+    def _get_merged_length(self) -> float:
+        return self.merged_marker.pc1.length
     
     def _get_center_distance(self) -> float:
         return np.linalg.norm(self.marker2.center - self.marker1.center)
+    
+    def _get_predicted_merged_length(self) -> float:
+        center_dist = self._get_center_distance()
+        radius1 = self.marker1.get_avg_diameter() / 2.0
+        radius2 = self.marker2.get_avg_diameter() / 2.0
+        return center_dist + radius1 + radius2
+    
+    def get_merged_accuracy(self) -> float:
+        actual = self._get_merged_length()
+        predicted = self._get_predicted_merged_length()
+        
+        if actual == 0 or predicted == 0:
+            return 0.0
+        
+        return min(actual, predicted) / max(actual, predicted)
 
     def plot_marker_pair(self, file_base_name="marker_pair", save_dir=None, headless=False):
         """Plot both markers with their PCA axes and connection line."""
@@ -214,7 +232,7 @@ class MarkerPair:
         ax.legend(loc='upper right', fontsize=9)
 
         # Set equal aspect ratio based on both markers
-        merged_points = self.get_merged_points()
+        merged_points = self._get_merged_points()
         max_range = np.array([
             merged_points[:,0].max() - merged_points[:,0].min(),
             merged_points[:,1].max() - merged_points[:,1].min(),
@@ -294,7 +312,7 @@ def main():
             for marker1, marker2 in combinations(markers, 2):
                 pair = MarkerPair(marker1, marker2)
                 pair_similarity = pair.get_diameter_similarity()
-                print(pair_similarity)
+                print(pair.get_merged_accuracy())
                 pair.merged_marker.plot_points_axes()
                 pair.plot_marker_pair()
                 if pair_similarity < pair_similarity_threshold:
