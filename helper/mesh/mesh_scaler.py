@@ -169,7 +169,7 @@ class MarkerPair:
         radius2 = self.marker2.get_avg_diameter() / 2.0
         return center_dist + radius1 + radius2
     
-    def _get_merged_accuracy(self) -> float:
+    def _get_length_accuracy(self) -> float:
         actual = self._get_merged_length()
         predicted = self._get_predicted_merged_length()
         
@@ -193,7 +193,7 @@ class MarkerPair:
         return similarity
     
     def get_combined_accuracy(self, expected_ratio: float) -> float:
-        merged_acc = self._get_merged_accuracy()
+        merged_acc = self._get_length_accuracy()
         distance_acc = self._get_distance_accuracy(expected_ratio)
         
         combined = (merged_acc * 0.6 + distance_acc * 0.4)
