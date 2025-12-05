@@ -160,11 +160,11 @@ class MarkerPair:
     def _get_merged_length(self) -> float:
         return self.merged_marker.pc1.length
     
-    def get_center_distance(self) -> float:
+    def _get_center_distance(self) -> float:
         return np.linalg.norm(self.marker2.center - self.marker1.center)
     
     def _get_predicted_merged_length(self) -> float:
-        center_dist = self.get_center_distance()
+        center_dist = self._get_center_distance()
         radius1 = self.marker1.get_avg_diameter() / 2.0
         radius2 = self.marker2.get_avg_diameter() / 2.0
         return center_dist + radius1 + radius2
@@ -179,7 +179,7 @@ class MarkerPair:
         return min(actual, predicted) / max(actual, predicted)
     
     def _get_distance_ratio_accuracy(self, expected_ratio: float) -> float:
-        center_dist = self.get_center_distance()
+        center_dist = self._get_center_distance()
         merged_len = self._get_merged_length()
         
         if center_dist == 0:
@@ -199,6 +199,11 @@ class MarkerPair:
         combined = (merged_acc * 0.6 + distance_acc * 0.4)
         
         return combined
+    
+    def get_scale_factor(self, real_center_distance) -> float:
+        center_dist = self._get_center_distance()
+        scale_factor = real_center_distance / center_dist
+        return scale_factor
 
     def plot_marker_pair(self, distance_expected_ratio, file_base_name="marker_pair", save_dir=None, headless=False):
         """Plot both markers with their PCA axes and connection line."""
@@ -224,7 +229,7 @@ class MarkerPair:
         center_line = np.vstack([self.marker1.center, self.marker2.center])
         ax.plot(center_line[:,0], center_line[:,1], center_line[:,2], 
                 'k--', linewidth=2, alpha=0.6, 
-                label=f'Distance: {self.get_center_distance():.4f}')
+                label=f'Distance: {self._get_center_distance():.4f}')
         
         # Plot Marker 1
         line_m1_pc1 = np.vstack([self.marker1.pc1.p_min, self.marker1.pc1.p_max])
@@ -362,15 +367,14 @@ class MeshScaler:
         if best_marker_pairs is None:
             raise ValueError("No valid marker pairs found!")
         
-        best_marker_pairs.plot_marker_pair(distance_expected_ratio)
-        measured = best_marker_pairs.get_center_distance()  # Pakai public method
-        scale_factor = real_center_distance / measured
         
+        scale_factor = best_marker_pairs.get_scale_factor()
         print(f"\nBest pair found:")
-        print(f"- Measured center distance: {measured:.4f}")
         print(f"- Real center distance: {real_center_distance:.4f}")
         print(f"- Predicted Marker Pair length: {scale_factor*best_marker_pairs._get_merged_length():.4f}")
         print(f"- Scale factor: {scale_factor:.6f}")
+        
+        best_marker_pairs.plot_marker_pair(distance_expected_ratio)
         
         return scale_factor, best_marker_pairs
 
