@@ -300,7 +300,7 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def main(self, points, labels, real_center_distance, real_total_length, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, quality_check=True):
+    def main(self, points, labels, real_center_distance, real_total_length, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True):
         best_marker_pairs: Optional[MarkerPair] = None
         distance_expected_ratio = real_total_length/real_center_distance
 
@@ -336,17 +336,21 @@ class MeshScaler:
 
                 for marker1, marker2 in combinations(markers, 2):
                     pair = MarkerPair(marker1, marker2)
-                    pair_similarity = pair.get_diameter_similarity()
 
-                    # plot
-                    pair.merged_marker.plot_points_axes()
-                    
+                    pair_similarity = pair.get_diameter_similarity()
                     merged_accuracy = pair.get_combined_accuracy(distance_expected_ratio)
                     print(f"Pair accuracy: {merged_accuracy:.3f}, similarity: {pair_similarity:.3f}")
                     
                     if pair_similarity < pair_similarity_threshold and quality_check:
                         print(f"- SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
                         continue
+
+                    if merged_accuracy < pair_prediction_threshold and quality_check:
+                        print(f"- SKIPPED - Low prediction accuracy ({merged_accuracy:.3f} < {pair_prediction_threshold})")
+                        continue
+
+                    # plot
+                    pair.merged_marker.plot_points_axes()
                     
                     if best_marker_pairs is None or best_marker_pairs.get_combined_accuracy(distance_expected_ratio) < merged_accuracy:
                         best_marker_pairs = pair
