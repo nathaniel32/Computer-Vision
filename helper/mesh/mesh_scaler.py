@@ -355,7 +355,7 @@ class MeshScaler:
                         continue
 
                     # plot
-                    pair.merged_marker.plot_points_axes()
+                    pair.merged_marker.plot_points_axes(points[:10000])
                     
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
