@@ -306,7 +306,7 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True, plot_points=5000):
+    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True, plot_points_max=5000):
         best_marker_pairs: Optional[MarkerPair] = None
         distance_expected_ratio = real_marker_pair_length/real_marker_pair_center_distance
 
@@ -356,8 +356,8 @@ class MeshScaler:
                         continue
 
                     # plot
-                    full_points = np.concatenate((points[:plot_points], points[marker_indices]))
-                    full_points_color = np.concatenate((colors[:plot_points], colors[marker_indices]))
+                    full_points = np.concatenate((points[:plot_points_max], points[marker_indices][:plot_points_max]))
+                    full_points_color = np.concatenate((colors[:plot_points_max], colors[marker_indices][:plot_points_max]))
                     pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color)
                     
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
