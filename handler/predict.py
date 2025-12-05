@@ -88,7 +88,7 @@ class Predict:
         if plot:
             plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless, file_base_name="scaling")
 
-        scale_factor, best_marker_pairs = self.mesh_scaler.calculate_scale_factor(points, pred_label, real_marker_pair_length, real_marker_pair_center_distance)
+        scale_factor, best_marker_pairs = self.mesh_scaler.calculate_scale_factor(points, pred_label, real_marker_pair_length, real_marker_pair_center_distance, quality_check=False)
 
         print(scale_factor)
         
