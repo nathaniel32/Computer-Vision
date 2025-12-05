@@ -51,16 +51,12 @@ def scale_mesh(scale_factor, input_path, out_dir_path):
     scale_factor_percent = int(scale_factor * 100)
     mesh.export(os.path.join(out_dir_path, f"scaled_{scale_factor_percent}_percent.obj"))
 
-def read_pcd_label(filename, target_label):
-    """
-    Read ASCII PCD and extract points with a specific label.
-    Automatically detect column positions from FIELDS header.
-    """
+def read_pcd_points_labels(filename):
     points = []
+    labels = []
     total_points = 0
     label_counts = {}
 
-    # Parse header to get field order
     field_names = []
     x_idx = y_idx = z_idx = label_idx = None
 
@@ -68,28 +64,26 @@ def read_pcd_label(filename, target_label):
         header_done = False
         for line in f:
             line = line.strip()
+            if not line:
+                continue
 
             # Parse FIELDS header
             if line.startswith("FIELDS"):
-                field_names = line.split()[1:]  # Skip "FIELDS" keyword
-                #print(f"Detected fields: {field_names}")
-
-                # Find indices for x, y, z, label
+                field_names = line.split()[1:]  # skip "FIELDS"
                 for i, field in enumerate(field_names):
-                    if field.lower() == 'x':
+                    fl = field.lower()
+                    if fl == 'x':
                         x_idx = i
-                    elif field.lower() == 'y':
+                    elif fl == 'y':
                         y_idx = i
-                    elif field.lower() == 'z':
+                    elif fl == 'z':
                         z_idx = i
-                    elif field.lower() == 'label':
+                    elif fl == 'label':
                         label_idx = i
 
-                #print(f"Column indices - x:{x_idx}, y:{y_idx}, z:{z_idx}, label:{label_idx}")
-
-                # Validation
                 if x_idx is None or y_idx is None or z_idx is None or label_idx is None:
                     raise ValueError("PCD file must have x, y, z, and label fields!")
+                continue
 
             # Start reading data
             if line.startswith("DATA"):
@@ -103,7 +97,6 @@ def read_pcd_label(filename, target_label):
 
                 total_points += 1
 
-                # Extract values based on indices
                 x = float(vals[x_idx])
                 y = float(vals[y_idx])
                 z = float(vals[z_idx])
@@ -111,10 +104,9 @@ def read_pcd_label(filename, target_label):
 
                 label_counts[label] = label_counts.get(label, 0) + 1
 
-                if label == target_label:
-                    points.append([x, y, z])
+                points.append([x, y, z])
+                labels.append(label)
 
-    #print(f"\nTotal points in PCD: {total_points}")
-    #print(f"Label counts: {label_counts}")
-    #print(f"Points with label={target_label}: {len(points)}")
-    return np.array(points)
+    points = np.array(points, dtype=np.float32)
+    labels = np.array(labels, dtype=np.int32)
+    return points, labels

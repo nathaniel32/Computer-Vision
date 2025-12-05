@@ -1,7 +1,9 @@
 import numpy as np
-from helper.mesh.mesh_utils import filter_clusters, read_pcd_label
+from helper.mesh.mesh_utils import filter_clusters, read_pcd_points_labels
 from itertools import permutations, combinations
 from dataclasses import dataclass, field
+import configs
+from typing import Optional
 
 @dataclass
 class AxisMetrics:
@@ -260,14 +262,12 @@ class MarkerPair:
 
         plt.close()
 
-def main():
-    from configs import marker_config
-
+class MeshScaler:
     # TODO
     # per label
     # - filter cluster circle                                                                                   OK
     # - peer setiap cluster circle (tanpa peer dengan diri), ukuran circle harus mirip atau abaikan             OK
-    # - hitung peer marker caranya marker1 kira kira 1/4 dari length marker pair -> kasi nilai quality
+    # - hitung peer marker caranya marker1 kira kira 1/4 dari length marker pair -> kasi nilai quality          OK
     #   - NOTE: (Marker 1cm)  -- distance 2cm -- (Marker 1cm)   total 4cm
     # - append rangking nilai quality tertinggi
     
@@ -275,60 +275,66 @@ def main():
     # - rangking label dengan nilai tertinggi
     # - hitung scale factor
 
-    pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
-    real_center_distance = 3
-    circularity_threshold = 0.85
-    diameter_tolerance = 0.15
-    pair_similarity_threshold = 0.85
+    def __init__(self, config:configs.BaseConfig):
+        self.config = config
+    
+    def main(self, points, labels, real_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85):
+        for scale_label in self.config.scale_labels:
+            try:
+                marker_indecies = labels == scale_label
+                marker_points = points[marker_indecies]
+                marker_clusters = filter_clusters(marker_points)
 
-    for label in marker_config.scale_labels:
-        try:
-            points_marker = read_pcd_label(pcd_file, target_label=label)
-            marker_clusters = filter_clusters(points_marker)
+                markers = []
+                for marker_cluster in marker_clusters:
+                    marker_metrics = PointsMetrics(marker_cluster)
 
-            markers = []
-            for marker_cluster in marker_clusters:
-                marker_metrics = PointsMetrics(marker_cluster)
+                    # plot
+                    #marker_metrics.plot_points_axes(points_marker)
+                    #marker_metrics.plot_points_axes()
 
-                # plot
-                #marker_metrics.plot_points_axes(points_marker)
-                #marker_metrics.plot_points_axes()
+                    circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
 
-                circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
+                    if circularity < circularity_threshold:
+                        print(f"- SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
+                        continue
+                    if diameter_ratio > diameter_tolerance:
+                        print(f"- SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
+                        continue
+                    
+                    #marker_metrics.plot_points_axes()
 
-                if circularity < circularity_threshold:
-                    print(f"- SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
-                    continue
-                if diameter_ratio > diameter_tolerance:
-                    print(f"- SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
-                    continue
-                
-                #marker_metrics.plot_points_axes()
+                    markers.append(marker_metrics)
 
-                markers.append(marker_metrics)
+                best_marker_pairs: Optional[MarkerPair] = None
+                for marker1, marker2 in combinations(markers, 2):
+                    pair = MarkerPair(marker1, marker2)
+                    pair_similarity = pair.get_diameter_similarity()
+                    
+                    pair.merged_marker.plot_points_axes()
+                    
+                    print(pair.get_merged_accuracy())
+                    if pair_similarity < pair_similarity_threshold:
+                        print(f"- SKIPPED - Low Similarity")
+                        continue
+                    
+                    if best_marker_pairs is None or best_marker_pairs.get_merged_accuracy() > pair.get_merged_accuracy():
+                        best_marker_pairs = pair
+                        pair.plot_marker_pair()
 
-            marker_pairs = []
-            for marker1, marker2 in combinations(markers, 2):
-                pair = MarkerPair(marker1, marker2)
-                pair_similarity = pair.get_diameter_similarity()
-                print(pair.get_merged_accuracy())
-                pair.merged_marker.plot_points_axes()
-                pair.plot_marker_pair()
-                if pair_similarity < pair_similarity_threshold:
-                    print(f"- SKIPPED - Low Similarity")
-                    continue
+            except Exception as e:
+                print("Error: ", e)
 
-                marker_pairs.append(pair)
-
-                measured = pair._get_center_distance()
-                print(real_center_distance / measured)
-            
-            print(f"== Total pairs: {len(marker_pairs)}") # n*(n-1)
-        except Exception as e:
-            print("Error: ", e)
-
-    #scale_factor = ?
-    #print(f"Scale factor (cm/unit): {scale_factor:.4f}")
+        measured = pair._get_center_distance()
+        print(real_center_distance / measured)
 
 if __name__ == "__main__":
+    def main():
+        pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
+        real_center_distance = 3
+
+        points, labels = read_pcd_points_labels(pcd_file)
+
+        MeshScaler(configs.marker_config).main(points, labels, real_center_distance)
+
     main() # py -m helper.mesh.mesh_scaler
