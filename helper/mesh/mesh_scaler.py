@@ -1,5 +1,6 @@
 import numpy as np
-from helper.mesh.mesh_utils import filter_clusters, read_pcd_points_labels
+from helper.mesh.mesh_utils import filter_clusters
+from helper.train.dataset import load_pcd_with_point_labels
 from itertools import permutations, combinations
 from dataclasses import dataclass, field
 import configs
@@ -380,11 +381,11 @@ class MeshScaler:
 
 if __name__ == "__main__":
     def main():
-        pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
+        pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out" #input("pcd path: ").strip().strip('"').strip("'")
         real_marker_pair_length = 4
         real_marker_pair_center_distance = 3
-        points, labels = read_pcd_points_labels(pcd_file)
+        points, colors, labels = load_pcd_with_point_labels(pcd_file)
 
-        MeshScaler(configs.marker_config).calculate_scale_factor(points, labels, real_marker_pair_length, real_marker_pair_center_distance)
+        MeshScaler(configs.marker_config).calculate_scale_factor(points[0], labels[0], real_marker_pair_length, real_marker_pair_center_distance)
 
     main() # py -m helper.mesh.mesh_scaler
