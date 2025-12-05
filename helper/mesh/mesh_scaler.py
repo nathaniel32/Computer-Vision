@@ -205,7 +205,7 @@ class MarkerPair:
         scale_factor = real_center_distance / center_dist
         return scale_factor
 
-    def plot_marker_pair(self, distance_expected_ratio, file_base_name="marker_pair", save_dir=None, headless=False):
+    def plot_marker_pair(self, title="Marker Pair", file_base_name="marker_pair", save_dir=None, headless=False):
         """Plot both markers with their PCA axes and connection line."""
         import matplotlib.pyplot as plt
         import os
@@ -258,8 +258,7 @@ class MarkerPair:
                 label=f'Merged Diameter: {self.merged_marker.pc1.length:.4f}')
 
         # Add metrics to title
-        prediction_accuracy = self.get_prediction_accuracy(distance_expected_ratio)
-        ax.set_title(f'Marker Pair - Prediction Accuracy: {prediction_accuracy:.3f}', fontsize=14)
+        ax.set_title(title, fontsize=14)
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -367,15 +366,16 @@ class MeshScaler:
         if best_marker_pairs is None:
             raise ValueError("No valid marker pairs found!")
         
-        
-        scale_factor = best_marker_pairs.get_scale_factor()
+        scale_factor = best_marker_pairs.get_scale_factor(real_center_distance)
+        prediction_accuracy = best_marker_pairs.get_prediction_accuracy(distance_expected_ratio)
+
         print(f"\nBest pair found:")
         print(f"- Real center distance: {real_center_distance:.4f}")
         print(f"- Predicted Marker Pair length: {scale_factor*best_marker_pairs._get_merged_length():.4f}")
         print(f"- Scale factor: {scale_factor:.6f}")
         
-        best_marker_pairs.plot_marker_pair(distance_expected_ratio)
-        
+        best_marker_pairs.plot_marker_pair(title=f'Prediction Accuracy: {prediction_accuracy:.3f} - Scale Factor: {scale_factor:.3f}')
+
         return scale_factor, best_marker_pairs
 
 if __name__ == "__main__":
