@@ -72,7 +72,7 @@ class PointsMetrics:
         quality_score = circularity * (1.0 - diameter_ratio)
         return circularity, avg_diameter, diameter_ratio, quality_score
     
-    def plot_points_axes(self, full_points=None, full_points_color='green', file_base_name="plot", save_dir=None, headless=False):
+    def plot_points_axes(self, full_points=None, full_points_color='green', title="Principal Axes", file_base_name="plot", save_dir=None, headless=False):
         import matplotlib.pyplot as plt
         import os
 
@@ -102,7 +102,7 @@ class PointsMetrics:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        ax.set_title('PCA - All Principal Axes')
+        ax.set_title(title)
         ax.legend()
 
         # Set equal aspect ratio
@@ -358,7 +358,8 @@ class MeshScaler:
                     # plot
                     full_points = np.concatenate((points[:plot_points_max], points[marker_indices][:plot_points_max]))
                     full_points_color = np.concatenate((colors[:plot_points_max], colors[marker_indices][:plot_points_max]))
-                    pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color)
+                    label_class = self.config.classes[scale_label]['label']
+                    pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker {label_class}")
                     
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
