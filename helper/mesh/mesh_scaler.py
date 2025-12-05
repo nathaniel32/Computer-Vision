@@ -276,8 +276,7 @@ def main():
     # - hitung scale factor
 
     pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
-    marker_diameter_cm = 1 #float(input("real marker size: "))
-    pair_marker_length = 4
+    real_center_distance = 3
     circularity_threshold = 0.85
     diameter_tolerance = 0.15
     pair_similarity_threshold = 0.85
@@ -320,6 +319,9 @@ def main():
                     continue
 
                 marker_pairs.append(pair)
+
+                measured = pair._get_center_distance()
+                print(real_center_distance / measured)
             
             print(f"== Total pairs: {len(marker_pairs)}") # n*(n-1)
         except Exception as e:
