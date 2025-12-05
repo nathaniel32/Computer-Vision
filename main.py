@@ -75,8 +75,8 @@ class Main:
                 input_dir_path = input("Input Dir Path: ").strip('"').strip()
                 output_dir_path = input("Output Dir Path: ").strip('"').strip()
                 plot_dir_path = input("Plot Dir Path: ").strip('"').strip() or None
-                real_marker_pair_center_distance = float(input("Marker Pair Center Distance (cm): "))
                 real_marker_pair_length = float(input("Marker Pair Length (cm): "))
+                real_marker_pair_center_distance = float(input("Marker Pair Center Distance (cm): "))
                 headless = input("Headless (y/n): ").lower().strip() == "y"
                 Predict(self.config).scaling_object(input_dir_path, output_dir_path, real_marker_pair_length, real_marker_pair_center_distance, plot_dir=plot_dir_path, headless=headless)
             elif choice == "5":
