@@ -1,6 +1,6 @@
 import numpy as np
 from helper.mesh.mesh_utils import filter_clusters, read_pcd_label
-from itertools import permutations
+from itertools import permutations, combinations
 from dataclasses import dataclass, field
 
 @dataclass
@@ -291,7 +291,7 @@ def main():
                 markers.append(marker_metrics)
 
             marker_pairs = []
-            for marker1, marker2 in permutations(markers, 2):
+            for marker1, marker2 in combinations(markers, 2):
                 pair = MarkerPair(marker1, marker2)
                 pair_similarity = pair.get_diameter_similarity()
                 print(pair_similarity)
