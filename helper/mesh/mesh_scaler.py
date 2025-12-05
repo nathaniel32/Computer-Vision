@@ -255,7 +255,7 @@ class MarkerPair:
         line_merged = np.vstack([self.merged_marker.pc1.p_min, self.merged_marker.pc1.p_max])
         ax.plot(line_merged[:,0], line_merged[:,1], line_merged[:,2], 
                 color='green', linewidth=1, linestyle=':', alpha=0.6,
-                label=f'Merged Diameter: {self.merged_marker.pc1.length:.4f}')
+                label=f'Pair Length: {self.merged_marker.pc1.length:.4f}')
 
         # Add metrics to title
         ax.set_title(title, fontsize=14)
