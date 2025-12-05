@@ -169,7 +169,7 @@ class MarkerPair:
         radius2 = self.marker2.get_avg_diameter() / 2.0
         return center_dist + radius1 + radius2
     
-    def _get_length_accuracy(self) -> float:
+    def _get_merged_length_accuracy(self) -> float:
         actual = self._get_merged_length()
         predicted = self._get_predicted_merged_length()
         
@@ -178,7 +178,7 @@ class MarkerPair:
         
         return min(actual, predicted) / max(actual, predicted)
     
-    def _get_distance_accuracy(self, expected_ratio: float) -> float:
+    def _get_distance_ratio_accuracy(self, expected_ratio: float) -> float:
         center_dist = self.get_center_distance()
         merged_len = self._get_merged_length()
         
@@ -192,15 +192,15 @@ class MarkerPair:
         
         return similarity
     
-    def get_combined_accuracy(self, expected_ratio: float) -> float:
-        merged_acc = self._get_length_accuracy()
-        distance_acc = self._get_distance_accuracy(expected_ratio)
+    def get_prediction_accuracy(self, expected_ratio: float) -> float:
+        merged_acc = self._get_merged_length_accuracy()
+        distance_acc = self._get_distance_ratio_accuracy(expected_ratio)
         
         combined = (merged_acc * 0.6 + distance_acc * 0.4)
         
         return combined
 
-    def plot_marker_pair(self, file_base_name="marker_pair", save_dir=None, headless=False):
+    def plot_marker_pair(self, distance_expected_ratio, file_base_name="marker_pair", save_dir=None, headless=False):
         """Plot both markers with their PCA axes and connection line."""
         import matplotlib.pyplot as plt
         import os
@@ -245,10 +245,16 @@ class MarkerPair:
         ax.plot(line_m2_pc2[:,0], line_m2_pc2[:,1], line_m2_pc2[:,2], 
                 color='orange', linewidth=2.5, linestyle='--', alpha=0.6,
                 label=f'M2 Diameter 2: {self.marker2.pc2.length:.4f}')
+        
+        # Plot merged
+        line_merged = np.vstack([self.merged_marker.pc1.p_min, self.merged_marker.pc1.p_max])
+        ax.plot(line_merged[:,0], line_merged[:,1], line_merged[:,2], 
+                color='green', linewidth=1, linestyle=':', alpha=0.6,
+                label=f'Merged Diameter: {self.merged_marker.pc1.length:.4f}')
 
         # Add metrics to title
-        similarity = self.get_diameter_similarity()
-        ax.set_title(f'Marker Pair - Diameter Similarity: {similarity:.3f}', fontsize=14)
+        prediction_accuracy = self.get_prediction_accuracy(distance_expected_ratio)
+        ax.set_title(f'Marker Pair - Prediction Accuracy: {prediction_accuracy:.3f}', fontsize=14)
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -338,21 +344,21 @@ class MeshScaler:
                     pair = MarkerPair(marker1, marker2)
 
                     pair_similarity = pair.get_diameter_similarity()
-                    merged_accuracy = pair.get_combined_accuracy(distance_expected_ratio)
-                    print(f"Pair accuracy: {merged_accuracy:.3f}, similarity: {pair_similarity:.3f}")
+                    prediction_acc = pair.get_prediction_accuracy(distance_expected_ratio)
+                    print(f"Pair accuracy: {prediction_acc:.3f}, similarity: {pair_similarity:.3f}")
                     
                     if pair_similarity < pair_similarity_threshold and quality_check:
                         print(f"- SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
                         continue
 
-                    if merged_accuracy < pair_prediction_threshold and quality_check:
-                        print(f"- SKIPPED - Low prediction accuracy ({merged_accuracy:.3f} < {pair_prediction_threshold})")
+                    if prediction_acc < pair_prediction_threshold and quality_check:
+                        print(f"- SKIPPED - Low prediction accuracy ({prediction_acc:.3f} < {pair_prediction_threshold})")
                         continue
 
                     # plot
                     pair.merged_marker.plot_points_axes()
                     
-                    if best_marker_pairs is None or best_marker_pairs.get_combined_accuracy(distance_expected_ratio) < merged_accuracy:
+                    if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
                         
             except Exception as e:
@@ -361,7 +367,7 @@ class MeshScaler:
         if best_marker_pairs is None:
             raise ValueError("No valid marker pairs found!")
         
-        best_marker_pairs.plot_marker_pair()
+        best_marker_pairs.plot_marker_pair(distance_expected_ratio)
         measured = best_marker_pairs.get_center_distance()  # Pakai public method
         scale_factor = real_center_distance / measured
         
