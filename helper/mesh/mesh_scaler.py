@@ -160,11 +160,11 @@ class MarkerPair:
     def _get_merged_length(self) -> float:
         return self.merged_marker.pc1.length
     
-    def _get_center_distance(self) -> float:
+    def get_center_distance(self) -> float:
         return np.linalg.norm(self.marker2.center - self.marker1.center)
     
     def _get_predicted_merged_length(self) -> float:
-        center_dist = self._get_center_distance()
+        center_dist = self.get_center_distance()
         radius1 = self.marker1.get_avg_diameter() / 2.0
         radius2 = self.marker2.get_avg_diameter() / 2.0
         return center_dist + radius1 + radius2
@@ -202,7 +202,7 @@ class MarkerPair:
         center_line = np.vstack([self.marker1.center, self.marker2.center])
         ax.plot(center_line[:,0], center_line[:,1], center_line[:,2], 
                 'k--', linewidth=2, alpha=0.6, 
-                label=f'Distance: {self._get_center_distance():.4f}')
+                label=f'Distance: {self.get_center_distance():.4f}')
         
         # Plot Marker 1
         line_m1_pc1 = np.vstack([self.marker1.pc1.p_min, self.marker1.pc1.p_max])
@@ -277,21 +277,24 @@ class MeshScaler:
 
     def __init__(self, config:configs.BaseConfig):
         self.config = config
-    
+
     def main(self, points, labels, real_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85):
+        best_marker_pairs: Optional[MarkerPair] = None
+        
         for scale_label in self.config.scale_labels:
             try:
-                marker_indecies = labels == scale_label
-                marker_points = points[marker_indecies]
+                marker_indices = labels == scale_label
+                marker_points = points[marker_indices]
+                
+                if len(marker_points) == 0:
+                    print(f"No points found for label {scale_label}")
+                    continue
+                    
                 marker_clusters = filter_clusters(marker_points)
 
                 markers = []
                 for marker_cluster in marker_clusters:
                     marker_metrics = PointsMetrics(marker_cluster)
-
-                    # plot
-                    #marker_metrics.plot_points_axes(points_marker)
-                    #marker_metrics.plot_points_axes()
 
                     circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
 
@@ -299,34 +302,48 @@ class MeshScaler:
                         print(f"- SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
                         continue
                     if diameter_ratio > diameter_tolerance:
-                        print(f"- SKIPPED - Diameter mismatch too large ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
+                        print(f"- SKIPPED - Diameter mismatch ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
                         continue
                     
-                    #marker_metrics.plot_points_axes()
-
                     markers.append(marker_metrics)
 
-                best_marker_pairs: Optional[MarkerPair] = None
+                if len(markers) < 2:
+                    print(f"Need at least 2 markers, found {len(markers)}")
+                    continue
+
                 for marker1, marker2 in combinations(markers, 2):
                     pair = MarkerPair(marker1, marker2)
                     pair_similarity = pair.get_diameter_similarity()
                     
+                    # plot
                     pair.merged_marker.plot_points_axes()
                     
-                    print(pair.get_merged_accuracy())
+                    merged_accuracy = pair.get_merged_accuracy()
+                    print(f"Pair accuracy: {merged_accuracy:.3f}, similarity: {pair_similarity:.3f}")
+                    
                     if pair_similarity < pair_similarity_threshold:
-                        print(f"- SKIPPED - Low Similarity")
+                        print(f"- SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
                         continue
                     
-                    if best_marker_pairs is None or best_marker_pairs.get_merged_accuracy() > pair.get_merged_accuracy():
+                    if best_marker_pairs is None or best_marker_pairs.get_merged_accuracy() < merged_accuracy:
                         best_marker_pairs = pair
-                        pair.plot_marker_pair()
-
+                        
             except Exception as e:
-                print("Error: ", e)
+                print(f"Error processing label {scale_label}: {e}")
 
-        measured = pair._get_center_distance()
-        print(real_center_distance / measured)
+        if best_marker_pairs is None:
+            raise ValueError("No valid marker pairs found!")
+        
+        best_marker_pairs.plot_marker_pair()
+        measured = best_marker_pairs.get_center_distance()  # Pakai public method
+        scale_factor = real_center_distance / measured
+        
+        print(f"\nBest pair found:")
+        print(f"- Measured center distance: {measured:.4f}")
+        print(f"- Real center distance: {real_center_distance:.4f}")
+        print(f"- Scale factor: {scale_factor:.6f}")
+        
+        return scale_factor, best_marker_pairs
 
 if __name__ == "__main__":
     def main():
