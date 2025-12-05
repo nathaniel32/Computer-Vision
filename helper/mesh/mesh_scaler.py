@@ -369,6 +369,7 @@ class MeshScaler:
         print(f"\nBest pair found:")
         print(f"- Measured center distance: {measured:.4f}")
         print(f"- Real center distance: {real_center_distance:.4f}")
+        print(f"- Predicted Marker Pair length: {scale_factor*best_marker_pairs._get_merged_length():.4f}")
         print(f"- Scale factor: {scale_factor:.6f}")
         
         return scale_factor, best_marker_pairs
