@@ -169,7 +169,7 @@ class MarkerPair:
         radius2 = self.marker2.get_avg_diameter() / 2.0
         return center_dist + radius1 + radius2
     
-    def get_merged_accuracy(self) -> float:
+    def _get_merged_accuracy(self) -> float:
         actual = self._get_merged_length()
         predicted = self._get_predicted_merged_length()
         
@@ -177,6 +177,28 @@ class MarkerPair:
             return 0.0
         
         return min(actual, predicted) / max(actual, predicted)
+    
+    def _get_distance_accuracy(self, expected_ratio: float) -> float:
+        center_dist = self.get_center_distance()
+        merged_len = self._get_merged_length()
+        
+        if center_dist == 0:
+            return 0.0
+        
+        actual_ratio = merged_len / center_dist
+        
+        # Similarity antara actual ratio vs expected ratio
+        similarity = min(actual_ratio, expected_ratio) / max(actual_ratio, expected_ratio)
+        
+        return similarity
+    
+    def get_combined_accuracy(self, expected_ratio: float) -> float:
+        merged_acc = self._get_merged_accuracy()
+        distance_acc = self._get_distance_accuracy(expected_ratio)
+        
+        combined = (merged_acc * 0.6 + distance_acc * 0.4)
+        
+        return combined
 
     def plot_marker_pair(self, file_base_name="marker_pair", save_dir=None, headless=False):
         """Plot both markers with their PCA axes and connection line."""
@@ -278,9 +300,10 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def main(self, points, labels, real_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85):
+    def main(self, points, labels, real_center_distance, real_total_length, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85):
         best_marker_pairs: Optional[MarkerPair] = None
-        
+        distance_expected_ratio = real_total_length/real_center_distance
+
         for scale_label in self.config.scale_labels:
             try:
                 marker_indices = labels == scale_label
@@ -314,18 +337,18 @@ class MeshScaler:
                 for marker1, marker2 in combinations(markers, 2):
                     pair = MarkerPair(marker1, marker2)
                     pair_similarity = pair.get_diameter_similarity()
-                    
+
                     # plot
                     pair.merged_marker.plot_points_axes()
                     
-                    merged_accuracy = pair.get_merged_accuracy()
+                    merged_accuracy = pair.get_combined_accuracy(distance_expected_ratio)
                     print(f"Pair accuracy: {merged_accuracy:.3f}, similarity: {pair_similarity:.3f}")
                     
                     if pair_similarity < pair_similarity_threshold:
                         print(f"- SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
                         continue
                     
-                    if best_marker_pairs is None or best_marker_pairs.get_merged_accuracy() < merged_accuracy:
+                    if best_marker_pairs is None or best_marker_pairs.get_combined_accuracy(distance_expected_ratio) < merged_accuracy:
                         best_marker_pairs = pair
                         
             except Exception as e:
@@ -349,9 +372,9 @@ if __name__ == "__main__":
     def main():
         pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
         real_center_distance = 3
-
+        real_total_length = 4
         points, labels = read_pcd_points_labels(pcd_file)
 
-        MeshScaler(configs.marker_config).main(points, labels, real_center_distance)
+        MeshScaler(configs.marker_config).main(points, labels, real_center_distance, real_total_length)
 
     main() # py -m helper.mesh.mesh_scaler
