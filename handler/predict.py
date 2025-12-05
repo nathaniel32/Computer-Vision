@@ -7,13 +7,14 @@ from helper.plot import plot_point_cloud, PlotTool
 import helper.mesh.mesh_remover
 from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 import numpy as np
-from helper.mesh.mesh_scaler import measure_marker_all_axes, calculate_scale_factor, plot_marker_all_axes, scale_mesh, filter_clusters
+from helper.mesh.mesh_scaler import MeshScaler
 
 class Predict:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model, self.model_num_points, self.classes = get_predict_model(self.config.save_model_path, self.device)
+        self.mesh_scaler = MeshScaler(self.config)
 
     def _predicting(self, input_dir_path, output_dir_path, smoothing=False):
         os.makedirs(output_dir_path, exist_ok=True)
@@ -81,31 +82,13 @@ class Predict:
             plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_keep", headless=headless)
             plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_remove", headless=headless)
 
-    def scaling_object(self, input_dir_path, output_dir_path, real_marker_diameter_cm, plot=True, plot_dir=None, headless=False):
+    def scaling_object(self, input_dir_path, output_dir_path, real_marker_pair_length, real_marker_pair_center_distance, plot=True, plot_dir=None, headless=False):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
         if plot:
             plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless, file_base_name="scaling")
 
-        all_markers_metrics = []
-        for label in self.config.scale_labels:
-            try:
-                marker_indecies = pred_label == label
-                marker_points = points[marker_indecies]
-                marker_clusters = filter_clusters(marker_points)
+        scale_factor, best_marker_pairs = self.mesh_scaler.calculate_scale_factor(points, pred_label, real_marker_pair_length, real_marker_pair_center_distance)
 
-                for marker_cluster in marker_clusters:
-                    # TODO check cluster where cluster = circle
-                    marker_axes_metrics, center = measure_marker_all_axes(marker_cluster)
-                    all_markers_metrics.append(marker_axes_metrics)
-                    
-                    if plot:
-                        #plot_marker_all_axes(points, center, results)
-                        label_name = self.config.classes[label]['label']
-                        plot_marker_all_axes(marker_points, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_full", save_dir=plot_dir, headless=headless)
-                        plot_marker_all_axes(marker_cluster, center, marker_axes_metrics, file_base_name=f"scaling_{label_name}_filtered", save_dir=plot_dir, headless=headless)
-            except Exception as e:
-                print(e)
-
-        scale_factor = calculate_scale_factor(all_markers_metrics, real_marker_diameter_cm)
-        scale_mesh(scale_factor, mesh_file_path, output_dir_path)
+        print(scale_factor)
+        

@@ -305,9 +305,9 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def main(self, points, labels, real_center_distance, real_total_length, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True):
+    def calculate_scale_factor(self, points, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True):
         best_marker_pairs: Optional[MarkerPair] = None
-        distance_expected_ratio = real_total_length/real_center_distance
+        distance_expected_ratio = real_marker_pair_length/real_marker_pair_center_distance
 
         for scale_label in self.config.scale_labels:
             try:
@@ -366,11 +366,11 @@ class MeshScaler:
         if best_marker_pairs is None:
             raise ValueError("No valid marker pairs found!")
         
-        scale_factor = best_marker_pairs.get_scale_factor(real_center_distance)
+        scale_factor = best_marker_pairs.get_scale_factor(real_marker_pair_center_distance)
         prediction_accuracy = best_marker_pairs.get_prediction_accuracy(distance_expected_ratio)
 
         print(f"\nBest pair found:")
-        print(f"- Real center distance: {real_center_distance:.4f}")
+        print(f"- Real center distance: {real_marker_pair_center_distance:.4f}")
         print(f"- Predicted Marker Pair length: {scale_factor*best_marker_pairs._get_merged_length():.4f}")
         print(f"- Scale factor: {scale_factor:.6f}")
         
@@ -381,10 +381,10 @@ class MeshScaler:
 if __name__ == "__main__":
     def main():
         pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out\point_cloud.pcd" #input("pcd path: ").strip().strip('"').strip("'")
-        real_center_distance = 3
-        real_total_length = 4
+        real_marker_pair_length = 4
+        real_marker_pair_center_distance = 3
         points, labels = read_pcd_points_labels(pcd_file)
 
-        MeshScaler(configs.marker_config).main(points, labels, real_center_distance, real_total_length)
+        MeshScaler(configs.marker_config).calculate_scale_factor(points, labels, real_marker_pair_length, real_marker_pair_center_distance)
 
     main() # py -m helper.mesh.mesh_scaler
