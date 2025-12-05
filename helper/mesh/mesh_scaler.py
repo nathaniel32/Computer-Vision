@@ -1,6 +1,6 @@
 import numpy as np
 from helper.mesh.mesh_utils import filter_clusters
-from helper.train.dataset import load_pcd_with_point_labels
+from helper.train.dataset import load_pcd_with_point_labels, transform_color
 from itertools import permutations, combinations
 from dataclasses import dataclass, field
 import configs
@@ -72,7 +72,7 @@ class PointsMetrics:
         quality_score = circularity * (1.0 - diameter_ratio)
         return circularity, avg_diameter, diameter_ratio, quality_score
     
-    def plot_points_axes(self, full_points=None, file_base_name="plot", save_dir=None, headless=False):
+    def plot_points_axes(self, full_points=None, full_points_color='green', file_base_name="plot", save_dir=None, headless=False):
         import matplotlib.pyplot as plt
         import os
 
@@ -84,7 +84,7 @@ class PointsMetrics:
 
         # Plot points dan center
         ax.scatter(full_points[:,0], full_points[:,1], full_points[:,2], 
-                s=1, color='green', alpha=0.3, label='Points')
+                s=1, color=full_points_color, alpha=0.3, label='Points')
         ax.scatter(self.center[0], self.center[1], self.center[2], 
                 color='red', s=100, marker='o', label='Centroid')
 
@@ -306,7 +306,7 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def calculate_scale_factor(self, points, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True):
+    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True):
         best_marker_pairs: Optional[MarkerPair] = None
         distance_expected_ratio = real_marker_pair_length/real_marker_pair_center_distance
 
@@ -356,7 +356,7 @@ class MeshScaler:
                         continue
 
                     # plot
-                    pair.merged_marker.plot_points_axes(points[:10000])
+                    pair.merged_marker.plot_points_axes(full_points=points[:10000], full_points_color=colors[:10000])
                     
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
@@ -384,8 +384,8 @@ if __name__ == "__main__":
         pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out" #input("pcd path: ").strip().strip('"').strip("'")
         real_marker_pair_length = 4
         real_marker_pair_center_distance = 3
-        points, colors, labels = load_pcd_with_point_labels(pcd_file)
+        points, colors_int, labels = load_pcd_with_point_labels(pcd_file)
 
-        MeshScaler(configs.marker_config).calculate_scale_factor(points[0], labels[0], real_marker_pair_length, real_marker_pair_center_distance)
+        MeshScaler(configs.marker_config).calculate_scale_factor(points[0], transform_color(colors_int[0]), labels[0], real_marker_pair_length, real_marker_pair_center_distance)
 
     main() # py -m helper.mesh.mesh_scaler
