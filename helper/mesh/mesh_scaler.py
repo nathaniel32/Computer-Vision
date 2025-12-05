@@ -356,7 +356,9 @@ class MeshScaler:
                         continue
 
                     # plot
-                    pair.merged_marker.plot_points_axes(full_points=points[:10000], full_points_color=colors[:10000])
+                    full_points = np.concatenate((points[:10000], points[marker_indices]))
+                    full_points_color = np.concatenate((colors[:10000], colors[marker_indices]))
+                    pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color)
                     
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
