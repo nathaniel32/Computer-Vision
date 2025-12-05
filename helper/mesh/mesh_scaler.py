@@ -300,7 +300,7 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def main(self, points, labels, real_center_distance, real_total_length, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85):
+    def main(self, points, labels, real_center_distance, real_total_length, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, quality_check=True):
         best_marker_pairs: Optional[MarkerPair] = None
         distance_expected_ratio = real_total_length/real_center_distance
 
@@ -321,10 +321,10 @@ class MeshScaler:
 
                     circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
 
-                    if circularity < circularity_threshold:
+                    if circularity < circularity_threshold and quality_check:
                         print(f"- SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
                         continue
-                    if diameter_ratio > diameter_tolerance:
+                    if diameter_ratio > diameter_tolerance and quality_check:
                         print(f"- SKIPPED - Diameter mismatch ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
                         continue
                     
@@ -344,7 +344,7 @@ class MeshScaler:
                     merged_accuracy = pair.get_combined_accuracy(distance_expected_ratio)
                     print(f"Pair accuracy: {merged_accuracy:.3f}, similarity: {pair_similarity:.3f}")
                     
-                    if pair_similarity < pair_similarity_threshold:
+                    if pair_similarity < pair_similarity_threshold and quality_check:
                         print(f"- SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
                         continue
                     
