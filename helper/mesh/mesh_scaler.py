@@ -362,8 +362,9 @@ class MeshScaler:
                         full_points = np.concatenate((points[:plot_points_max], points[marker_indices][:plot_points_max]))
                         full_points_color = np.concatenate((colors[:plot_points_max], colors[marker_indices][:plot_points_max]))
                         
+                        scale_factor = pair.get_scale_factor(real_marker_pair_center_distance)
                         prediction_acc_percent = int(prediction_acc * 100)
-                        pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker {label_class} Acc: {prediction_acc}", file_base_name=f"marker_{label_class}_{prediction_acc_percent}", save_dir=plot_dir, headless=headless)
+                        pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker: {label_class} - Prediction Accuracy: {prediction_acc:.3f} - Scale Factor: {scale_factor:.3f}", file_base_name=f"marker_{label_class}_{prediction_acc_percent}", save_dir=plot_dir, headless=headless)
 
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
