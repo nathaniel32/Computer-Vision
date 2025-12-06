@@ -137,6 +137,7 @@ class PointsMetrics:
 class MarkerPair:
     marker1: PointsMetrics
     marker2: PointsMetrics
+    label_class: str
     merged_marker: PointsMetrics = field(init=False)
 
     def __post_init__(self):
@@ -312,6 +313,8 @@ class MeshScaler:
 
         for scale_label in self.config.scale_labels:
             try:
+                label_class = self.config.classes[scale_label]['label']
+
                 marker_indices = labels == scale_label
                 marker_points = points[marker_indices]
                 
@@ -341,7 +344,7 @@ class MeshScaler:
                     continue
 
                 for marker1, marker2 in combinations(markers, 2):
-                    pair = MarkerPair(marker1, marker2)
+                    pair = MarkerPair(marker1, marker2, label_class)
 
                     pair_similarity = pair.get_diameter_similarity()
                     prediction_acc = pair.get_prediction_accuracy(distance_expected_ratio)
@@ -358,8 +361,9 @@ class MeshScaler:
                     if plot:
                         full_points = np.concatenate((points[:plot_points_max], points[marker_indices][:plot_points_max]))
                         full_points_color = np.concatenate((colors[:plot_points_max], colors[marker_indices][:plot_points_max]))
-                        label_class = self.config.classes[scale_label]['label']
-                        pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker {label_class} {prediction_acc}", save_dir=plot_dir, headless=headless)
+                        
+                        prediction_acc_percent = int(prediction_acc * 100)
+                        pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker {label_class} Acc: {prediction_acc}", file_base_name=f"marker_{label_class}_{prediction_acc_percent}", save_dir=plot_dir, headless=headless)
 
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
@@ -379,7 +383,7 @@ class MeshScaler:
         print(f"- Scale factor: {scale_factor:.6f}")
         
         if plot:
-            best_marker_pairs.plot_marker_pair(title=f'Prediction Accuracy: {prediction_accuracy:.3f} - Scale Factor: {scale_factor:.3f}', save_dir=plot_dir, headless=headless)
+            best_marker_pairs.plot_marker_pair(title=f'Marker: {best_marker_pairs.label_class} - Prediction Accuracy: {prediction_accuracy:.3f} - Scale Factor: {scale_factor:.3f}', file_base_name=f"best_marker", save_dir=plot_dir, headless=headless)
 
         return scale_factor, best_marker_pairs
 
