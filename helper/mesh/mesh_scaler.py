@@ -307,7 +307,7 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True, plot_points_max=5000, plot=True, plot_dir=None, headless=False):
+    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.98, quality_check=True, plot_points_max=5000, plot=True, plot_dir=None, headless=False):
         best_marker_pairs: Optional[MarkerPair] = None
         distance_expected_ratio = real_marker_pair_length/real_marker_pair_center_distance
 
