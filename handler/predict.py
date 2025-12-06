@@ -8,6 +8,7 @@ import helper.mesh.mesh_remover
 from helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 import numpy as np
 from helper.mesh.mesh_scaler import MeshScaler
+from helper.mesh.mesh_utils import scale_mesh
 
 class Predict:
     def __init__(self, config:configs.BaseConfig):
@@ -90,5 +91,5 @@ class Predict:
 
         scale_factor, best_marker_pairs = self.mesh_scaler.calculate_scale_factor(points, color, pred_label, real_marker_pair_length, real_marker_pair_center_distance, plot=plot, plot_dir=plot_dir, headless=headless)
 
-        print(scale_factor)
+        scale_mesh(scale_factor, mesh_file_path, output_dir_path)
         
