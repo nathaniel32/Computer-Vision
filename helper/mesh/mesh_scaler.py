@@ -306,7 +306,7 @@ class MeshScaler:
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
-    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True, plot_points_max=5000):
+    def calculate_scale_factor(self, points, colors, labels, real_marker_pair_length, real_marker_pair_center_distance, circularity_threshold=0.85, diameter_tolerance=0.15, pair_similarity_threshold=0.85, pair_prediction_threshold=0.95, quality_check=True, plot_points_max=5000, plot=True, plot_dir=None, headless=False):
         best_marker_pairs: Optional[MarkerPair] = None
         distance_expected_ratio = real_marker_pair_length/real_marker_pair_center_distance
 
@@ -355,12 +355,12 @@ class MeshScaler:
                         print(f"- SKIPPED - Low prediction accuracy ({prediction_acc:.3f} < {pair_prediction_threshold})")
                         continue
 
-                    # plot
-                    full_points = np.concatenate((points[:plot_points_max], points[marker_indices][:plot_points_max]))
-                    full_points_color = np.concatenate((colors[:plot_points_max], colors[marker_indices][:plot_points_max]))
-                    label_class = self.config.classes[scale_label]['label']
-                    pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker {label_class}")
-                    
+                    if plot:
+                        full_points = np.concatenate((points[:plot_points_max], points[marker_indices][:plot_points_max]))
+                        full_points_color = np.concatenate((colors[:plot_points_max], colors[marker_indices][:plot_points_max]))
+                        label_class = self.config.classes[scale_label]['label']
+                        pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker {label_class} {prediction_acc}", save_dir=plot_dir, headless=headless)
+
                     if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
                         best_marker_pairs = pair
                         
@@ -378,7 +378,8 @@ class MeshScaler:
         print(f"- Predicted Marker Pair length: {scale_factor*best_marker_pairs._get_merged_length():.4f}")
         print(f"- Scale factor: {scale_factor:.6f}")
         
-        best_marker_pairs.plot_marker_pair(title=f'Prediction Accuracy: {prediction_accuracy:.3f} - Scale Factor: {scale_factor:.3f}')
+        if plot:
+            best_marker_pairs.plot_marker_pair(title=f'Prediction Accuracy: {prediction_accuracy:.3f} - Scale Factor: {scale_factor:.3f}', save_dir=plot_dir, headless=headless)
 
         return scale_factor, best_marker_pairs
 
