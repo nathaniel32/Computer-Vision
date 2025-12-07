@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import open3d as o3d
 import numpy as np
 import os
 from enum import Enum
@@ -117,6 +116,8 @@ def plot_point_cloud(point_cloud, color_plot, classes, pred_label=None, true_lab
         plt.close()
 
     elif plot_tool == PlotTool.OPEN3D:
+        import open3d as o3d
+        
         def create_pointcloud_with_colors(point_cloud, label, classes):           
             def hex_to_rgb(hex_color):
                 hex_color = hex_color.lstrip('#')
