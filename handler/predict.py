@@ -68,7 +68,7 @@ class Predict:
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label, plot=True, plot_dir=None, headless=False):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        if plot and headless:
+        if plot and not headless:
             plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless, file_base_name="cleaning")
         
         # trim mesh
@@ -79,14 +79,14 @@ class Predict:
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
         
-        if plot and headless:
+        if plot and not headless:
             plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_keep", headless=headless)
             plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_remove", headless=headless)
 
     def scaling_object(self, input_dir_path, output_dir_path, real_marker_pair_length, real_marker_pair_center_distance, plot=True, plot_dir=None, headless=False):
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
-        if plot and headless:
+        if plot and not headless:
             plot_point_cloud(points, color, self.classes, pred_label=pred_label, plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, headless=headless, file_base_name="scaling")
 
         scale_factor, best_marker_pairs = self.mesh_scaler.calculate_scale_factor(points, color, pred_label, real_marker_pair_length, real_marker_pair_center_distance, plot=plot, plot_dir=plot_dir, headless=headless)
