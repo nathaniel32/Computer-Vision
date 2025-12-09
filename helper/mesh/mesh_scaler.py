@@ -312,14 +312,14 @@ class MeshScaler:
         distance_expected_ratio = real_marker_pair_length/real_marker_pair_center_distance
 
         for scale_label in self.config.scale_labels:
-            try:
-                label_class = self.config.classes[scale_label]['label']
+            label_class = self.config.classes[scale_label]['label']
 
+            try:
                 marker_indices = labels == scale_label
                 marker_points = points[marker_indices]
                 
                 if len(marker_points) == 0:
-                    print(f"No points found for label {scale_label}")
+                    print(f"No points found for label {label_class}")
                     continue
                     
                 marker_clusters = filter_clusters(marker_points)
@@ -370,7 +370,7 @@ class MeshScaler:
                         best_marker_pairs = pair
                         
             except Exception as e:
-                print(f"Error processing label {scale_label}: {e}")
+                print(f"Error processing label {label_class}: {e}")
 
         if best_marker_pairs is None:
             raise ValueError("No valid marker pairs found!")
