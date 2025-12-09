@@ -313,7 +313,7 @@ class MeshScaler:
 
         for scale_label in self.config.scale_labels:
             label_class = self.config.classes[scale_label]['label']
-
+            print(f"\n== Marker {label_class} ==")
             try:
                 marker_indices = labels == scale_label
                 marker_points = points[marker_indices]
