@@ -340,7 +340,7 @@ class MeshScaler:
                     markers.append(marker_metrics)
 
                 if len(markers) < 2:
-                    print(f"Need at least 2 markers, found {len(markers)}")
+                    print(f"Marker {label_class}: Need at least 2 markers, found {len(markers)}")
                     continue
 
                 for marker1, marker2 in combinations(markers, 2):
