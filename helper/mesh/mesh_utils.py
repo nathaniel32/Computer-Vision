@@ -3,12 +3,30 @@ import numpy as np
 import trimesh
 import os
 from scipy.spatial import cKDTree
+from sklearn.neighbors import NearestNeighbors
 
-def get_cluster_labels(xyz, eps=0.02, min_points=10):
+""" def get_cluster_labels(xyz, eps=0.02, min_points=10):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(xyz)
     
     cluster_labels = np.array(pcd.cluster_dbscan(eps=eps, min_points=min_points))
+    return cluster_labels """
+
+def get_cluster_labels(xyz, min_points=10, k=10):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    
+    # K-distance -> eps optimal
+    nbrs = NearestNeighbors(n_neighbors=k).fit(xyz)
+    distances, _ = nbrs.kneighbors(xyz)
+    k_distances = np.sort(distances[:, k-1])[::-1]
+    
+    # Elbow detection
+    eps = k_distances[np.argmax(np.diff(np.diff(k_distances)) + 1)]
+    
+    cluster_labels = np.array(pcd.cluster_dbscan(eps=eps, min_points=min_points))
+    print(f"Optimal eps from k-distance (k={k}): {eps:.4f}")
+    
     return cluster_labels
 
 def filter_largest_cluster(xyz):    
