@@ -79,7 +79,7 @@ class Predict:
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
         
-        if plot:
+        if plot and headless:
             plot_point_cloud(points[keep_indecies], color[keep_indecies], self.classes, pred_label=pred_label[keep_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_keep", headless=headless)
             plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_remove", headless=headless)
 
