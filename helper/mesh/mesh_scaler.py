@@ -198,7 +198,7 @@ class MarkerPair:
         length_acc = self._get_length_prediction_accuracy()
         distance_acc = self._get_distance_ratio_accuracy(expected_ratio)
         
-        combined = (length_acc * 0.2 + distance_acc * 0.8)
+        combined = (length_acc * 0.3 + distance_acc * 0.7)
         
         return combined, distance_acc, length_acc
     
