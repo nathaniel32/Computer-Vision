@@ -297,13 +297,6 @@ class MarkerPair:
         plt.close()
 
 class MeshScaler:
-    # TODO
-    # - filter cluster circle                                                                                   OK
-    # - peer setiap cluster circle (tanpa peer dengan diri), ukuran circle harus mirip atau abaikan             OK
-    # - hitung center distance kira kira 3/4 dari total length marker pair --> nilai quality                    OK
-    # - rangking label dengan nilai tertinggi                                                                   OK
-    # - hitung scale factor                                                                                     OK
-
     def __init__(self, config:configs.BaseConfig):
         self.config = config
 
