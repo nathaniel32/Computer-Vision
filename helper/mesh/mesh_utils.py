@@ -3,9 +3,9 @@ import numpy as np
 import trimesh
 import os
 from scipy.spatial import cKDTree
-from sklearn.neighbors import NearestNeighbors
 
 def get_eps(xyz, k=10):
+    from sklearn.neighbors import NearestNeighbors
     # K-distance -> eps optimal
     nbrs = NearestNeighbors(n_neighbors=k).fit(xyz)
     distances, _ = nbrs.kneighbors(xyz)
