@@ -17,7 +17,7 @@ class Predict:
         self.model, self.model_num_points, self.classes = get_predict_model(self.config.save_model_path, self.device)
         self.mesh_scaler = MeshScaler(self.config)
 
-    def _predicting(self, input_dir_path, output_dir_path, smoothing=False):
+    def _predicting(self, input_dir_path, output_dir_path, smoothing=False, save_pcd=True):
         os.makedirs(output_dir_path, exist_ok=True)
 
         total_num_points = self.config.total_num_points
@@ -61,7 +61,8 @@ class Predict:
             comb_color_norm = np.array(comb_color_norm)
             comb_pred_label = np.array(comb_pred_label)
 
-            save_point_cloud_in_pcd(comb_points, comb_color_int, output_dir_path, label=comb_pred_label)
+            if save_pcd:
+                save_point_cloud_in_pcd(comb_points, comb_color_int, output_dir_path, label=comb_pred_label)
 
             return comb_points, comb_color_norm, comb_pred_label, mesh_file_path
 
