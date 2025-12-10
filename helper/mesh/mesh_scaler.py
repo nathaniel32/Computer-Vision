@@ -200,7 +200,7 @@ class MarkerPair:
         
         combined = (merged_acc * 0.6 + distance_acc * 0.4)
         
-        return combined
+        return combined, merged_acc, distance_acc
     
     def get_scale_factor(self, real_center_distance) -> float:
         center_dist = self._get_center_distance()
@@ -341,8 +341,8 @@ class MeshScaler:
                     pair = MarkerPair(marker1, marker2, label_class)
 
                     pair_similarity = pair.get_diameter_similarity()
-                    prediction_acc = pair.get_prediction_accuracy(distance_expected_ratio)
-                    print(f"- Pair accuracy: {prediction_acc:.3f}, similarity: {pair_similarity:.3f}")
+                    prediction_acc, distance_acc, length_acc = pair.get_prediction_accuracy(distance_expected_ratio)
+                    print(f"- Pair accuracy: {prediction_acc:.3f} - Similarity: {pair_similarity:.3f} - Distance accuracy: {distance_acc} - Length accuracy: {length_acc}")
                     
                     if pair_similarity < pair_similarity_threshold and quality_check:
                         print(f"  SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
@@ -360,7 +360,7 @@ class MeshScaler:
                         prediction_acc_percent = int(prediction_acc * 100)
                         pair.merged_marker.plot_points_axes(full_points=full_points, full_points_color=full_points_color, title=f"Marker: {label_class} - Prediction Accuracy: {prediction_acc:.3f} - Scale Factor: {scale_factor:.3f}", file_base_name=f"marker_{label_class}_{prediction_acc_percent}", save_dir=plot_dir, headless=headless)
 
-                    if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio) < prediction_acc:
+                    if best_marker_pairs is None or best_marker_pairs.get_prediction_accuracy(distance_expected_ratio)[0] < prediction_acc:
                         best_marker_pairs = pair
                         
             except Exception as e:
@@ -370,7 +370,7 @@ class MeshScaler:
             raise ValueError("No valid marker pairs found!")
         
         scale_factor = best_marker_pairs.get_scale_factor(real_marker_pair_center_distance)
-        prediction_accuracy = best_marker_pairs.get_prediction_accuracy(distance_expected_ratio)
+        prediction_accuracy, _, _ = best_marker_pairs.get_prediction_accuracy(distance_expected_ratio)
 
         print(f"\nBest pair found:")
         print(f"- Real center distance: {real_marker_pair_center_distance:.4f}")
