@@ -17,9 +17,7 @@ class Predict:
         self.model, self.model_num_points, self.classes = get_predict_model(self.config.save_model_path, self.device)
         self.mesh_scaler = MeshScaler(self.config)
 
-    def _predicting(self, input_dir_path, output_dir_path, smoothing=False, save_pcd=True):
-        os.makedirs(output_dir_path, exist_ok=True)
-
+    def _predicting(self, input_dir_path, output_dir_path=None, smoothing=False):
         total_num_points = self.config.total_num_points
         
         self.model.eval()
@@ -61,12 +59,13 @@ class Predict:
             comb_color_norm = np.array(comb_color_norm)
             comb_pred_label = np.array(comb_pred_label)
 
-            if save_pcd:
+            if output_dir_path is not None:
                 save_point_cloud_in_pcd(comb_points, comb_color_int, output_dir_path, label=comb_pred_label)
 
             return comb_points, comb_color_norm, comb_pred_label, mesh_file_path
 
     def cleaning_object(self, input_dir_path, output_dir_path, keep_label, plot=True, plot_dir=None, headless=False):
+        os.makedirs(output_dir_path, exist_ok=True)
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
         if plot and not headless:
@@ -85,6 +84,7 @@ class Predict:
             plot_point_cloud(points[remove_indecies], color[remove_indecies], self.classes, pred_label=pred_label[remove_indecies], plot_tool=PlotTool.OPEN3D, save_dir=plot_dir, file_base_name="cleaning_remove", headless=headless)
 
     def scaling_object(self, input_dir_path, output_dir_path, real_marker_pair_length, real_marker_pair_center_distance, plot=True, plot_dir=None, headless=False):
+        os.makedirs(output_dir_path, exist_ok=True)
         points, color, pred_label, mesh_file_path = self._predicting(input_dir_path, output_dir_path)
 
         if plot and not headless:
