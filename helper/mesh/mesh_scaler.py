@@ -390,7 +390,7 @@ class MeshScaler:
 
 if __name__ == "__main__":
     def main():
-        pcd_file = r"C:\Users\natha\Desktop\test_preds\obj_marker\bone\1\out" #input("pcd path: ").strip().strip('"').strip("'")
+        pcd_file = input("pcd dir path: ").strip().strip('"').strip("'")
         real_marker_pair_length = 4
         real_marker_pair_center_distance = 3
         points, colors_int, labels = load_pcd_with_point_labels(pcd_file)
