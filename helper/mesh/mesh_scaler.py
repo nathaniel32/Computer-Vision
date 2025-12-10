@@ -329,12 +329,13 @@ class MeshScaler:
                     marker_metrics = PointsMetrics(marker_cluster)
 
                     circularity, avg_diameter, diameter_ratio, quality_score = marker_metrics.calculate_circularity()
+                    print(f"- Circularity: {circularity:.3f} - Diameter Ratio: {diameter_ratio*100:.1f}% - Avg Diameter: {avg_diameter}% - Quality Score: {quality_score}")
 
                     if circularity < circularity_threshold and quality_check:
-                        print(f"- SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
+                        print(f"  SKIPPED - Low circularity ({circularity:.3f} < {circularity_threshold})")
                         continue
                     if diameter_ratio > diameter_tolerance and quality_check:
-                        print(f"- SKIPPED - Diameter mismatch ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
+                        print(f"  SKIPPED - Diameter mismatch ({diameter_ratio*100:.1f}% > {diameter_tolerance*100:.1f}%)")
                         continue
                     
                     markers.append(marker_metrics)
@@ -348,14 +349,14 @@ class MeshScaler:
 
                     pair_similarity = pair.get_diameter_similarity()
                     prediction_acc = pair.get_prediction_accuracy(distance_expected_ratio)
-                    print(f"Pair accuracy: {prediction_acc:.3f}, similarity: {pair_similarity:.3f}")
+                    print(f"- Pair accuracy: {prediction_acc:.3f}, similarity: {pair_similarity:.3f}")
                     
                     if pair_similarity < pair_similarity_threshold and quality_check:
-                        print(f"- SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
+                        print(f"  SKIPPED - Low similarity ({pair_similarity:.3f} < {pair_similarity_threshold})")
                         continue
 
                     if prediction_acc < pair_prediction_threshold and quality_check:
-                        print(f"- SKIPPED - Low prediction accuracy ({prediction_acc:.3f} < {pair_prediction_threshold})")
+                        print(f"  SKIPPED - Low prediction accuracy ({prediction_acc:.3f} < {pair_prediction_threshold})")
                         continue
 
                     if plot:
