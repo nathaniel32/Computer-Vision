@@ -200,7 +200,7 @@ class MarkerPair:
         
         combined = (length_acc * 0.2 + distance_acc * 0.8)
         
-        return combined, length_acc, distance_acc
+        return combined, distance_acc, length_acc
     
     def get_scale_factor(self, real_center_distance) -> float:
         center_dist = self._get_center_distance()
