@@ -5,7 +5,7 @@ apt-get update && apt-get install -y curl unzip
 
 URL="https://github.com/nathaniel32/Computer-Vision/releases/download/v1/best_model.zip"
 ZIP_FILE="segmentation_model_tmp.zip"
-DEST="."
+DEST="pc_color_seg"
 
 [ ! -d "$DEST" ] && mkdir -p "$DEST"
 

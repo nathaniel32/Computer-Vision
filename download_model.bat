@@ -1,7 +1,7 @@
 @echo off
 set URL=https://github.com/nathaniel32/Computer-Vision/releases/download/v1/best_model.zip
 set ZIP=segmentation_model_tmp.zip
-set DEST=.
+set DEST=pc_color_seg
 
 if not exist "%DEST%" (
     mkdir "%DEST%"

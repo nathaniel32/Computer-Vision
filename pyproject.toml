@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=65.5.1", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pc-color-seg"
+version = "0.1.0"
+description = "3D Point Cloud Color Segmentation"
+requires-python = ">=3.11"
+
+dependencies = [
+    "torch",
+    "tqdm==4.67.0",
+    "open3d==0.19.0",
+    "scipy==1.14.1",
+    "matplotlib==3.9.2",
+    "pandas==2.2.3",
+    "trimesh==4.8.2"
+]
+
+[tool.setuptools]
+packages = ["pc_color_seg"]
+package-dir = {"" = "."}
