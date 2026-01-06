@@ -5,7 +5,7 @@ import pc_color_seg.configs as configs
 from pc_color_seg.helper.train.dataset import PointCloudSegmentationDataset, get_chunks_indices
 from pc_color_seg.helper.train.model import get_predict_model
 from pc_color_seg.helper.plot import plot_point_cloud, PlotTool
-from pc_color_seg.helper.mesh.mesh_remover import smooth_labels, remove_object_part_v2
+from pc_color_seg.helper.mesh.mesh_remover import smooth_labels, remove_object_part
 from pc_color_seg.helper.mesh.mesh_converter import convert_mesh_to_point_cloud_folder, save_point_cloud_in_pcd
 from pc_color_seg.helper.mesh.mesh_scaler import MeshScaler
 from pc_color_seg.helper.mesh.mesh_utils import scale_mesh
@@ -73,7 +73,7 @@ class Predict:
         
         # trim mesh
         trim_out_path = os.path.join(output_dir_path, "trim_mesh.obj")
-        remove_object_part_v2(points, pred_label, mesh_file_path, trim_out_path, keep_label)
+        remove_object_part(points, pred_label, mesh_file_path, trim_out_path, keep_label)
 
         keep_indecies = pred_label == keep_label # keep
         remove_indecies = pred_label != keep_label # remove
