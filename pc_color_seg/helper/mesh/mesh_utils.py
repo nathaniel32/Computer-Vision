@@ -56,8 +56,31 @@ def filter_clusters(xyz):
 
     return clusters
 
-def scale_mesh(scale_factor, input_path, out_dir_path):
-    mesh = trimesh.load(input_path)
-    mesh.apply_scale(scale_factor)
+def scale_mesh(scale_factor, input_path, out_dir_path):    
+    vertices = []
+    other_lines = []
+    
+    with open(input_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith('v '):
+                parts = line.split()
+                x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                vertices.append((x * scale_factor, y * scale_factor, z * scale_factor))
+            else:
+                other_lines.append(line)
+    
     scale_factor_percent = int(scale_factor * 100)
-    mesh.export(os.path.join(out_dir_path, f"scaled_{scale_factor_percent}_percent.obj"))
+    output_path = os.path.join(out_dir_path, f"scaled_{scale_factor_percent}_percent.obj")
+    
+    with open(output_path, 'w') as f:
+        for line in other_lines:
+            if not line.startswith('v'):
+                f.write(line + '\n')
+        
+        for v in vertices:
+            f.write(f'v {v[0]} {v[1]} {v[2]}\n')
+        
+        for line in other_lines:
+            if line.startswith('f '):
+                f.write(line + '\n')
