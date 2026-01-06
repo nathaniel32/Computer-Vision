@@ -1,0 +1,1 @@
+python -m pc_color_seg.main
